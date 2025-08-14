@@ -8,11 +8,9 @@ var draggable_item_scene = preload("res://scene/DraggableItem.tscn")
 
 var dragging = false
 var drag_start_pos = Vector2()
-var drag_offset = Vector2()
+var drag_offset = Vector2() # new - stores mouse offset from item center
 var dragged_item = null
 var target_item = null
-var start_x
-var start_y
 
 func _ready():
 	grid_data.resize(grid_width)
@@ -44,6 +42,7 @@ func _ready():
 
 func _input(event):
 	if event is InputEventMouseMotion and dragging:
+		# keep mouse offset so no jumping
 		dragged_item.position = to_local(event.position) + drag_offset
 
 	elif event is InputEventMouseButton and not event.pressed and dragging:
@@ -57,57 +56,50 @@ func _on_item_clicked(item, click_pos: Vector2):
 
 func start_drag(item, pos):
 	dragging = true
+	drag_start_pos = pos
 	dragged_item = item
-	drag_start_pos = item.position
 	dragged_item.z_index = 1
-	drag_offset = item.position - to_local(pos)
-
-	# Store the starting grid coordinates
-	start_x = floor(drag_start_pos.x / cell_size)
-	start_y = floor(drag_start_pos.y / cell_size)
+	# store offset so the sprite stays under cursor where clicked
+	drag_offset = item.position - pos
 
 func end_drag(pos):
 	dragging = false
 	dragged_item.z_index = 0
 
+	var start_x = floor(drag_start_pos.x / cell_size)
+	var start_y = floor(drag_start_pos.y / cell_size)
 	var end_x = floor(pos.x / cell_size)
 	var end_y = floor(pos.y / cell_size)
 
-	# Check if inside grid bounds
+	# Always allow swapping
 	if end_x >= 0 and end_x < grid_width and end_y >= 0 and end_y < grid_height:
 		target_item = grid_data[end_x][end_y]
+
 		if target_item != null and target_item != dragged_item:
 			attempt_swap(dragged_item, target_item, start_x, start_y, end_x, end_y)
 		else:
-			reset_item_position(dragged_item, start_x, start_y)
+			reset_item_position(dragged_item, Vector2(start_x * cell_size, start_y * cell_size))
 	else:
-		reset_item_position(dragged_item, start_x, start_y)
+		reset_item_position(dragged_item, Vector2(start_x * cell_size, start_y * cell_size))
 
 	dragged_item = null
 	target_item = null
 
 func attempt_swap(item1, item2, x1, y1, x2, y2):
-	var pos1 = Vector2(
-		x1 * cell_size + cell_size / 2,
-		y1 * cell_size + cell_size / 2
-	)
-	var pos2 = Vector2(
-		x2 * cell_size + cell_size / 2,
-		y2 * cell_size + cell_size / 2
-	)
+	var pos1 = item1.position
+	var pos2 = item2.position
 
-	# Swap in the data grid
 	grid_data[x1][y1] = item2
 	grid_data[x2][y2] = item1
 
-	# Animate both swaps
-	create_tween().tween_property(item1, "position", pos2, 0.15)
-	create_tween().tween_property(item2, "position", pos1, 0.15)
+	# Swap visually
+	create_tween().tween_property(item1, "position", pos2, 0.2)
+	create_tween().tween_property(item2, "position", pos1, 0.2)
 
-func reset_item_position(item, grid_x, grid_y):
+func reset_item_position(item, grid_pos):
 	item.position = Vector2(
-		grid_x * cell_size + cell_size / 2,
-		grid_y * cell_size + cell_size / 2
+		grid_pos.x + cell_size / 2,
+		grid_pos.y + cell_size / 2
 	)
 
 func check_for_matches():
