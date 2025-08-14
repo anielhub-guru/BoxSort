@@ -149,29 +149,11 @@ func check_for_matches():
 			for k in range(match_count):
 				to_remove.append(Vector2(x, grid_height-1-k))
 
-	## Remove matched items
-	highlight_and_remove(to_remove)
-
-func highlight_and_remove(matched_positions):
-	# Highlight yellow before removing
-	for pos in matched_positions:
-		var gx = pos.x
-		var gy = pos.y
-		if grid_data[gx][gy]:
-			var sprite = grid_data[gx][gy].get_node("Sprite2D")
-			sprite.modulate = Color(1, 1, 0)  # Yellow highlight
-			#var tween = create_tween() # slight grow effect 
-			#tween.tween_property(sprite, "scale", sprite.scale * 1.2, 0.15).set_trans(Tween.TRANS_BOUNCE)
-
-
-	# Small delay so player sees it
-	await get_tree().create_timer(0.2).timeout
-
-	# Remove the matched items
-	for pos in matched_positions:
-		var gx = pos.x
-		var gy = pos.y
-		if grid_data[gx][gy]:
-			grid_data[gx][gy].queue_free()
-			grid_data[gx][gy] = null
-			
+	# Remove matched items
+	for pos in to_remove:
+		var gx = int(pos.x)
+		var gy = int(pos.y)
+		if gx >= 0 and gx < grid_width and gy >= 0 and gy < grid_height:
+			if grid_data[gx][gy] != null:
+				grid_data[gx][gy].queue_free()
+				grid_data[gx][gy] = null
