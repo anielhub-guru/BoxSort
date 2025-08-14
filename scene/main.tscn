@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3 uid="uid://bd64stdd2uuwb"]
+
+[ext_resource type="PackedScene" uid="uid://pg3fayeowjo" path="res://scene/grid.tscn" id="1_itxqv"]
+
+[node name="CanvasLayer" type="CanvasLayer"]
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Grid" parent="CenterContainer" instance=ExtResource("1_itxqv")]
