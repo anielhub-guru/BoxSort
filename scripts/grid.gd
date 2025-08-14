@@ -23,7 +23,14 @@ func _ready():
 		grid_data[i] = []
 		for j in range(grid_height):
 			var item_instance = draggable_item_scene.instantiate()
-			item_instance.item_type = randi() % colors.size()
+
+			# Pick a random type, but avoid horizontal matches of 3
+			var new_type = randi() % colors.size()
+			while i >= 2 and grid_data[i-1][j].item_type == new_type and grid_data[i-2][j].item_type == new_type:
+				new_type = randi() % colors.size()
+
+			item_instance.item_type = new_type
+
 			var sprite_instance = item_instance.get_node("Sprite2D")
 			sprite_instance.modulate = colors[item_instance.item_type]
 
@@ -36,7 +43,6 @@ func _ready():
 				j * cell_size + cell_size / 2
 			)
 
-			# Connect click signal from item
 			item_instance.clicked.connect(_on_item_clicked)
 
 			add_child(item_instance)
@@ -62,7 +68,6 @@ func start_drag(item, pos):
 	dragged_item.z_index = 1
 	drag_offset = item.position - to_local(pos)
 
-	# Store the starting grid coordinates
 	start_x = floor(drag_start_pos.x / cell_size)
 	start_y = floor(drag_start_pos.y / cell_size)
 
@@ -73,7 +78,6 @@ func end_drag(pos):
 	var end_x = floor(pos.x / cell_size)
 	var end_y = floor(pos.y / cell_size)
 
-	# Check if inside grid bounds
 	if end_x >= 0 and end_x < grid_width and end_y >= 0 and end_y < grid_height:
 		target_item = grid_data[end_x][end_y]
 		if target_item != null and target_item != dragged_item:
@@ -96,11 +100,9 @@ func attempt_swap(item1, item2, x1, y1, x2, y2):
 		y2 * cell_size + cell_size / 2
 	)
 
-	# Swap in the data grid
 	grid_data[x1][y1] = item2
 	grid_data[x2][y2] = item1
 
-	# Animate both swaps
 	create_tween().tween_property(item1, "position", pos2, 0.15)
 	create_tween().tween_property(item2, "position", pos1, 0.15)
 
