@@ -97,10 +97,7 @@ func end_drag(pos):
 			attempt_swap(dragged_item, target_item, start_x, start_y, end_coords.x, end_coords.y)
 			await get_tree().create_timer(0.2).timeout
 			
-			if check_for_matches():
-				pass
-			else:
-				attempt_swap(dragged_item, target_item, end_coords.x, end_coords.y, start_x, start_y)
+			check_for_matches() # Simply check for matches, don't swap back
 		else:
 			reset_item_position(dragged_item, start_x, start_y)
 	else:
