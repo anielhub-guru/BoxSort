@@ -1,15 +1,19 @@
 extends Node2D
 
+# Game board and item properties
 var grid_width = 6
 var grid_height = 12
 var cell_size = 90
 var shelf_gap_x = 10
 var shelf_gap_y = 15
 
+# Game state and data
 var grid_data = []
 var draggable_item_scene = preload("res://scene/DraggableItem.tscn")
 var colors = [Color.RED, Color.BLUE, Color.GREEN, Color.ORANGE]
+var score = 0  # NEW: Score variable to track progress
 
+# Drag and drop variables
 var dragging = false
 var drag_start_pos = Vector2()
 var drag_offset = Vector2()
@@ -43,20 +47,17 @@ func _get_random_item_type(x, y):
 func _create_item(item_type, x, y):
 	var item_instance = draggable_item_scene.instantiate()
 	item_instance.item_type = item_type
-
 	var sprite_instance = item_instance.get_node("Sprite2D")
 	sprite_instance.modulate = colors[item_type]
 	var tex_size = sprite_instance.texture.get_size()
 	var scale_factor = cell_size / tex_size.x
 	sprite_instance.scale = Vector2(scale_factor, scale_factor)
-
 	var extra_offset_x = int(x / 3) * shelf_gap_x
 	var extra_offset_y = int(y / 1) * shelf_gap_y
 	item_instance.position = Vector2(
 		x * cell_size + cell_size / 2 + extra_offset_x,
 		y * cell_size + cell_size / 2 + extra_offset_y
 	)
-
 	item_instance.clicked.connect(_on_item_clicked)
 	add_child(item_instance)
 	return item_instance
@@ -135,24 +136,25 @@ func _get_cell_center(x, y):
 		y * cell_size + cell_size / 2 + extra_offset_y
 	)
 
-## Match Detection and Removal Logic
+# -------------------------------
+# Match Detection and Gameplay Logic
+# -------------------------------
 
 func check_for_matches() -> bool:
 	var to_remove = {}
 
 	for y in range(grid_height):
-		for cell_x in range(grid_width / 3):  # Loop through each cell
-			var start_x = cell_x * 3  # The starting x-index for this cell
+		for cell_x in range(grid_width / 3):
+			var start_x = cell_x * 3
+			var x = start_x
+			var item1 = grid_data[x][y]
+			var item2 = grid_data[x+1][y]
+			var item3 = grid_data[x+2][y]
 
-			for x in range(start_x, start_x + 1): # Check for a set of three within the cell
-				var item1 = grid_data[x][y]
-				var item2 = grid_data[x+1][y]
-				var item3 = grid_data[x+2][y]
-
-				if item1 and item2 and item3 and item1.item_type == item2.item_type and item2.item_type == item3.item_type:
-					to_remove[Vector2(x, y)] = true
-					to_remove[Vector2(x+1, y)] = true
-					to_remove[Vector2(x+2, y)] = true
+			if item1 and item2 and item3 and item1.item_type == item2.item_type and item2.item_type == item3.item_type:
+				to_remove[Vector2(x, y)] = true
+				to_remove[Vector2(x+1, y)] = true
+				to_remove[Vector2(x+2, y)] = true
 
 	if to_remove.size() > 0:
 		highlight_and_remove(to_remove.keys())
@@ -160,17 +162,85 @@ func check_for_matches() -> bool:
 	return false
 
 func highlight_and_remove(matched_positions):
+	# NEW: Add score before removing items
+	add_score(matched_positions.size())
+	
+	# Highlight yellow before removing
 	for pos in matched_positions:
 		var gx = int(pos.x)
 		var gy = int(pos.y)
 		if _is_inside_grid(gx, gy) and grid_data[gx][gy]:
 			grid_data[gx][gy].get_node("Sprite2D").modulate = Color(1, 1, 0)
-
+	
 	await get_tree().create_timer(0.2).timeout
-
+	
+	# Remove the matched items
 	for pos in matched_positions:
 		var gx = int(pos.x)
 		var gy = int(pos.y)
 		if _is_inside_grid(gx, gy) and grid_data[gx][gy]:
 			grid_data[gx][gy].queue_free()
 			grid_data[gx][gy] = null
+	
+	# NEW: After removing items, apply gravity and refill the grid
+	apply_gravity()
+
+# NEW: Function to add to the score
+func add_score(matched_count):
+	# Placeholder scoring logic: 10 points per matched item
+	score += matched_count * 10
+	print("Current score: ", score)
+
+# NEW: Gravity function to make items drop down
+func apply_gravity():
+	var tween = create_tween().set_parallel(true)
+	var should_refill = false
+	
+	for x in range(grid_width):
+		for y in range(grid_height - 1, 0, -1):
+			if grid_data[x][y] == null:
+				for y_above in range(y - 1, -1, -1):
+					if grid_data[x][y_above] != null:
+						var item_to_move = grid_data[x][y_above]
+						grid_data[x][y] = item_to_move
+						grid_data[x][y_above] = null
+						
+						var new_pos = _get_cell_center(x, y)
+						tween.tween_property(item_to_move, "position", new_pos, 0.2)
+						should_refill = true
+						break
+	
+	# Wait for items to drop before refilling
+	if should_refill:
+		await tween.finished
+	
+	# After gravity, refill the top of the grid
+	refill_grid()
+
+# NEW: Function to refill empty spots at the top of the grid
+func refill_grid():
+	var tween = create_tween().set_parallel(true)
+	var new_items_created = false
+	
+	for x in range(grid_width):
+		for y in range(grid_height):
+			if grid_data[x][y] == null:
+				var item_type = randi() % colors.size()
+				var item_instance = _create_item(item_type, x, y)
+				grid_data[x][y] = item_instance
+				
+				# Start the item off-screen at the top
+				var start_pos = _get_cell_center(x, -1)
+				item_instance.position = start_pos
+				
+				# Animate it dropping into place
+				var end_pos = _get_cell_center(x, y)
+				tween.tween_property(item_instance, "position", end_pos, 0.2)
+				new_items_created = true
+	
+	# Wait for the new items to drop before checking for new matches
+	if new_items_created:
+		await tween.finished
+	
+	# Check for new matches that might have formed from the refill
+	check_for_matches()
