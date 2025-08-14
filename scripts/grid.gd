@@ -138,27 +138,24 @@ func _get_cell_center(x, y):
 		y * cell_size + cell_size / 2 + extra_offset_y
 	)
 
-
-### Match Detection and Removal Logic
+## Match Detection and Removal Logic
 
 func check_for_matches() -> bool:
 	var to_remove = {}
 
-	# Find horizontal matches
 	for y in range(grid_height):
-		var match_count = 1
-		for x in range(grid_width):
-			if x > 0 and grid_data[x][y] and grid_data[x-1][y] and grid_data[x][y].item_type == grid_data[x-1][y].item_type:
-				match_count += 1
-			else:
-				if match_count >= 3:
-					for k in range(match_count):
-						to_remove[Vector2(x - 1 - k, y)] = true
-				match_count = 1
-		# Check for a match at the very end of the row
-		if match_count >= 3:
-			for k in range(match_count):
-				to_remove[Vector2(grid_width - 1 - k, y)] = true
+		for cell_x in range(grid_width / 3):  # Loop through each cell
+			var start_x = cell_x * 3  # The starting x-index for this cell
+
+			for x in range(start_x, start_x + 1): # Check for a set of three within the cell
+				var item1 = grid_data[x][y]
+				var item2 = grid_data[x+1][y]
+				var item3 = grid_data[x+2][y]
+
+				if item1 and item2 and item3 and item1.item_type == item2.item_type and item2.item_type == item3.item_type:
+					to_remove[Vector2(x, y)] = true
+					to_remove[Vector2(x+1, y)] = true
+					to_remove[Vector2(x+2, y)] = true
 
 	if to_remove.size() > 0:
 		highlight_and_remove(to_remove.keys())
@@ -166,7 +163,6 @@ func check_for_matches() -> bool:
 	return false
 
 func highlight_and_remove(matched_positions):
-	# Highlight yellow before removing
 	for pos in matched_positions:
 		var gx = int(pos.x)
 		var gy = int(pos.y)
@@ -175,7 +171,6 @@ func highlight_and_remove(matched_positions):
 
 	await get_tree().create_timer(0.2).timeout
 
-	# Remove the matched items
 	for pos in matched_positions:
 		var gx = int(pos.x)
 		var gy = int(pos.y)
