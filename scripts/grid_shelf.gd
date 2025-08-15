@@ -4,9 +4,8 @@ extends Node2D
 var grid_width = 6
 var grid_height = 12
 var cell_size = 90
-var shelf_gap_x = 10  # You can now adjust the horizontal gap between tiles
+var shelf_gap_x = 20  # You can now adjust the horizontal gap between tiles
 var shelf_gap_y = 15  # You can now adjust the vertical gap between tiles
-var use_shelf_gaps = false  # NEW: Set to 'true' for the old shelf gap, 'false' for a uniform gap
 
 # Game state and data
 var grid_data = []
@@ -23,42 +22,9 @@ var target_item: Node2D = null
 var start_x = 0
 var start_y = 0
 
-# --- Timer variables ---
-var time_limit = 5.0  # Time limit in seconds
-var time_left = 0.0
-var is_game_over = false
-# --- End Timer variables ---
-
-# --- NEW: Export a variable to link the UI Label to the script ---
-@export var time_label: Label
-@export var playerMsg_label: Label
-@export var bonus_time_per_match: float = 0.5 # NEW: Added an exportable variable to control the bonus time
-var playerMsg_initial_position: Vector2
-# --- End NEW ---
-
 func _ready():
 	randomize()
 	_generate_grid()
-	time_left = time_limit  # Initialize the timer
-	
-	# NEW: Hide the player message label at the start and save its initial position
-	if playerMsg_label != null:
-		playerMsg_label.hide()
-		playerMsg_initial_position = playerMsg_label.position
-
-func _process(delta):
-	# Add a null check to prevent errors if the label isn't assigned
-	if time_label != null:
-		if not is_game_over:
-			time_left -= delta
-			if time_left <= 0:
-				time_left = 0
-				game_over()
-			time_label.text = "Time: " + str(int(time_left)) +"\nScore: " + str(score)
-		else:
-			game_over()
-			
-		
 
 func _generate_grid():
 	grid_data.resize(grid_width)
@@ -89,7 +55,7 @@ func _get_random_item_type(x, y):
 				possible_types.erase(t1)
 	return possible_types[randi() % possible_types.size()]
 
-# UPDATED: The position now uses the new shelf_gap variables for a consistent gap
+# The position now uses the new shelf_gap variables
 func _create_item(item_type, x, y):
 	var item_instance = draggable_item_scene.instantiate()
 	item_instance.item_type = item_type
@@ -98,17 +64,8 @@ func _create_item(item_type, x, y):
 	var tex_size = sprite_instance.texture.get_size()
 	var scale_factor = cell_size / tex_size.x
 	sprite_instance.scale = Vector2(scale_factor, scale_factor)
-	
-	# NEW: Use the 'use_shelf_gaps' variable to determine the offset
-	var extra_offset_x = 0.0
-	var extra_offset_y = 0.0
-	if use_shelf_gaps:
-		extra_offset_x = (x / 3) * shelf_gap_x
-		extra_offset_y = (y / 1) * shelf_gap_y
-	else:
-		extra_offset_x = x * shelf_gap_x
-		extra_offset_y = y * shelf_gap_y
-		
+	var extra_offset_x = (x / 3) * shelf_gap_x
+	var extra_offset_y = (y / 1) * shelf_gap_y
 	item_instance.position = Vector2(
 		x * cell_size + cell_size / 2 + extra_offset_x,
 		y * cell_size + cell_size / 2 + extra_offset_y
@@ -175,7 +132,7 @@ func end_drag(pos):
 	dragged_item = null
 	target_item = null
 
-# The calculation now uses a more reliable method
+# UPDATED: The calculation now uses a more reliable method
 # by finding the closest grid cell center to the drop position.
 func _get_grid_coords_from_position(pos: Vector2) -> Vector2:
 	var closest_pos = Vector2(-1, -1)
@@ -207,18 +164,10 @@ func attempt_swap(item1, item2, x1, y1, x2, y2):
 func reset_item_position(item, grid_x, grid_y):
 	item.position = _get_cell_center(grid_x, grid_y)
 
-# UPDATED: The position calculation now uses a consistent gap
+# The position calculation now uses the new shelf_gap variables
 func _get_cell_center(x, y):
-	var extra_offset_x = 0.0
-	var extra_offset_y = 0.0
-	# NEW: Use the 'use_shelf_gaps' variable to determine the offset
-	if use_shelf_gaps:
-		extra_offset_x = (x / 3) * shelf_gap_x
-		extra_offset_y = (y / 1) * shelf_gap_y
-	else:
-		extra_offset_x = x * shelf_gap_x
-		extra_offset_y = y * shelf_gap_y
-		
+	var extra_offset_x = (x / 3) * shelf_gap_x
+	var extra_offset_y = (y / 1) * shelf_gap_y
 	return Vector2(
 		x * cell_size + cell_size / 2 + extra_offset_x,
 		y * cell_size + cell_size / 2 + extra_offset_y
@@ -231,37 +180,31 @@ func _get_cell_center(x, y):
 func check_for_matches() -> bool:
 	var to_remove = {}
 
-	# Check for horizontal matches of 3 or more
+	# Check for horizontal matches
 	for y in range(grid_height):
-		var current_run_length = 1
-		for x in range(grid_width):
-			if x > 0 and grid_data[x][y] and grid_data[x][y].item_type == grid_data[x-1][y].item_type:
-				current_run_length += 1
-			else:
-				if current_run_length >= 3:
-					for i in range(current_run_length):
-						to_remove[Vector2(x - 1 - i, y)] = true
-				current_run_length = 1
-		# Check at the end of the row
-		if current_run_length >= 3:
-			for i in range(current_run_length):
-				to_remove[Vector2(grid_width - 1 - i, y)] = true
+		for cell_x in range(grid_width / 3):
+			var start_x = cell_x * 3
+			var x = start_x
+			var item1 = grid_data[x][y]
+			var item2 = grid_data[x+1][y]
+			var item3 = grid_data[x+2][y]
 
-	# Check for vertical matches of 3 or more
+			if item1 and item2 and item3 and item1.item_type == item2.item_type and item2.item_type == item3.item_type:
+				to_remove[Vector2(x, y)] = true
+				to_remove[Vector2(x+1, y)] = true
+				to_remove[Vector2(x+2, y)] = true
+	
+	# Check for vertical matches
 	for x in range(grid_width):
-		var current_run_length = 1
-		for y in range(grid_height):
-			if y > 0 and grid_data[x][y] and grid_data[x][y].item_type == grid_data[x][y-1].item_type:
-				current_run_length += 1
-			else:
-				if current_run_length >= 3:
-					for i in range(current_run_length):
-						to_remove[Vector2(x, y - 1 - i)] = true
-				current_run_length = 1
-		# Check at the end of the column
-		if current_run_length >= 3:
-			for i in range(current_run_length):
-				to_remove[Vector2(x, grid_height - 1 - i)] = true
+		for y in range(grid_height - 2):
+			var item1 = grid_data[x][y]
+			var item2 = grid_data[x][y+1]
+			var item3 = grid_data[x][y+2]
+			
+			if item1 and item2 and item3 and item1.item_type == item2.item_type and item2.item_type == item3.item_type:
+				to_remove[Vector2(x, y)] = true
+				to_remove[Vector2(x, y+1)] = true
+				to_remove[Vector2(x, y+2)] = true
 
 	if to_remove.size() > 0:
 		highlight_and_remove(to_remove.keys())
@@ -289,47 +232,9 @@ func highlight_and_remove(matched_positions):
 	apply_gravity()
 
 func add_score(matched_count):
-	if is_game_over:
-		return
-		
 	score += matched_count * 10
-	
-	# UPDATED: Calculate bonus time using the new variable
-	var time_added = matched_count * bonus_time_per_match
-	time_left += time_added
-	
-	# NEW: Improved pop-up animation for the player message
-	if playerMsg_label != null:
-		# Reset position, scale, and modulate to initial state
-		playerMsg_label.position = playerMsg_initial_position
-		playerMsg_label.scale = Vector2(1, 1)
-		playerMsg_label.modulate = Color(1, 1, 1, 1)
-		playerMsg_label.text = "+" + str(time_added) + "s"
-		playerMsg_label.show()
-		
-		# Create a tween for the fancy animation
-		var tween = create_tween()
-		
-		# Move the label up, scale it down, and fade it out simultaneously
-		tween.tween_property(playerMsg_label, "position", playerMsg_initial_position - Vector2(0, 30), 1.0)
-		tween.tween_property(playerMsg_label, "scale", Vector2(0.5, 0.5), 1.0)
-		tween.tween_property(playerMsg_label, "modulate", Color(1, 1, 1, 0), 1.0).set_delay(0.25)
-		
-		# After the tween is finished, hide the label
-		tween.tween_callback(Callable(playerMsg_label, "hide"))
-		
-func game_over():
-	var final_score = "Game Over! \nScore: " + str(score)
-	if not is_game_over:
-		is_game_over = true
-		print(final_score)
-		# Add a null check before accessing the label
-		if time_label != null:
-			time_label.text = final_score
-		# You can add code here to show a game over screen,
-	else:
-		time_label.text = final_score
-		
+	print("Current score: ", score)
+
 func apply_gravity():
 	var tween = create_tween().set_parallel(true)
 	var should_refill = false
