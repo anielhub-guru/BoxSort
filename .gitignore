@@ -10,5 +10,4 @@ export_presets.cfg
 # OS-specific
 .DS_Store
 Thumbs.db
-
 *.mp3
