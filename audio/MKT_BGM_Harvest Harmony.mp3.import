@@ -2,7 +2,11 @@
 
 importer="mp3"
 type="AudioStreamMP3"
+<<<<<<< HEAD
 uid="uid://blntcyd3r3crd"
+=======
+uid="uid://bf6xl1c4e7utp"
+>>>>>>> 213a7d5 (playable demo)
 path="res://.godot/imported/MKT_BGM_Harvest Harmony.mp3-c006a23edc632feaaece119216c10c90.mp3str"
 
 [deps]
