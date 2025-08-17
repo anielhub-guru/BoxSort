@@ -2,16 +2,28 @@ extends Node2D
 
 # Game board and item properties
 var grid_width = 6
-var grid_height = 12
+var grid_height = 6
 var cell_size = 90
 var shelf_gap_x = 10  # You can now adjust the horizontal gap between tiles
 var shelf_gap_y = 15  # You can now adjust the vertical gap between tiles
-var use_shelf_gaps = false  # NEW: Set to 'true' for the old shelf gap, 'false' for a uniform gap
+var use_shelf_gaps = false  # Set to 'true' for the old shelf gap, 'false' for a uniform gap
 
 # Game state and data
 var grid_data = []
 var draggable_item_scene = preload("res://scene/DraggableItem.tscn")
-var colors = [Color.RED, Color.BLUE, Color.GREEN, Color.ORANGE]
+var colors = [
+	Color8(77, 255, 255),    # Cyan Aqua
+	Color8(255, 179, 77),    # Warm Orange
+	#Color8(255, 77, 179),    # Magenta Pink
+	#Color8(77, 125, 255),    # Indigo Blue
+	#Color8(128, 149, 255),  # Soft Violet Blue
+	#Color8(82, 224, 149),    # Mint Green
+	#Color8(182, 47, 69),    # Reddish Rose
+	#Color8(255, 202, 125),  # Peach Gold
+	#Color8(214, 109, 129),  # Muted Rose
+	Color8(255, 186, 161)    # Pastel Coral
+]
+
 var score = 0
 
 # Drag and drop variables
@@ -24,27 +36,69 @@ var start_x = 0
 var start_y = 0
 
 # --- Timer variables ---
-var time_limit = 5.0  # Time limit in seconds
+var time_limit = 10.0  # Time limit in seconds
 var time_left = 0.0
 var is_game_over = false
 # --- End Timer variables ---
 
-# --- NEW: Export a variable to link the UI Label to the script ---
-@export var time_label: Label
-@export var playerMsg_label: Label
-@export var bonus_time_per_match: float = 0.5 # NEW: Added an exportable variable to control the bonus time
+# References to UI elements
+var time_label: Label
+var playerMsg_label: Label
+@export var bonus_time_per_match: float = 0.5 # Added an exportable variable to control the bonus time
 var playerMsg_initial_position: Vector2
-# --- End NEW ---
 
 func _ready():
 	randomize()
+
+	# Calculate the total width and height of the grid
+	var grid_total_width = (grid_width * cell_size) + ((grid_width - 1) * shelf_gap_x)
+	var grid_total_height = (grid_height * cell_size) + ((grid_height - 1) * shelf_gap_y)
+
+	# Offset the Node2D's position by half of the grid's total size.
+	# This makes the grid build outwards from the center of this Node2D.
+	position = Vector2(-grid_total_width / 2, -grid_total_height / 2)
+
+	# --- BORDER & BACKGROUND SETUP ---
+	# The Panel node should be the first child and the Line2D the second child
+	# of this Node2D in the scene tree.
+	var background_panel = get_node("Panel")
+	if background_panel != null:
+		# Define the padding amount
+		var padding = 30
+		
+		# Set the size to be the grid size plus the padding
+		background_panel.size = Vector2(grid_total_width + padding, grid_total_height + padding)
+		
+		# Offset the position by half of the padding to center the background
+		background_panel.position = Vector2(-padding / 2, -padding / 2)
+	
+	var border_node = get_node("Line2D")
+	if border_node != null:
+		# The Line2D border now wraps around the Panel to include the padding
+		border_node.clear_points() # Clears any existing points
+		border_node.add_point(background_panel.position) # Top-left
+		border_node.add_point(background_panel.position + Vector2(background_panel.size.x, 0)) # Top-right
+		border_node.add_point(background_panel.position + background_panel.size) # Bottom-right
+		border_node.add_point(background_panel.position + Vector2(0, background_panel.size.y)) # Bottom-left
+		border_node.add_point(background_panel.position) # Connect back to the start
+		border_node.default_color = Color("#000000") # Your border color
+		border_node.width = 5 # Adjust the width
+	# --- END BORDER & BACKGROUND SETUP ---
+
 	_generate_grid()
 	time_left = time_limit  # Initialize the timer
+
+	# --- FIX: Correcting the relative path ---
+	# The path needs to go up the scene tree from your script's Node2D.
+	# The number of ".." depends on your specific scene tree.
+	# A common path is three levels up to the root, then down to the UI.
+	time_label = get_node("../../../UI/VBoxContainer/Timer")
+	playerMsg_label = get_node("../../../UI/VBoxContainer/playerMsg")
 	
-	# NEW: Hide the player message label at the start and save its initial position
 	if playerMsg_label != null:
 		playerMsg_label.hide()
 		playerMsg_initial_position = playerMsg_label.position
+	# --- END FIX ---
 
 func _process(delta):
 	# Add a null check to prevent errors if the label isn't assigned
@@ -59,7 +113,6 @@ func _process(delta):
 			game_over()
 			
 		
-
 func _generate_grid():
 	grid_data.resize(grid_width)
 	for x in range(grid_width):
@@ -99,7 +152,7 @@ func _create_item(item_type, x, y):
 	var scale_factor = cell_size / tex_size.x
 	sprite_instance.scale = Vector2(scale_factor, scale_factor)
 	
-	# NEW: Use the 'use_shelf_gaps' variable to determine the offset
+	# This is the key change: Position is now relative to this Node2D's origin (0,0)
 	var extra_offset_x = 0.0
 	var extra_offset_y = 0.0
 	if use_shelf_gaps:
@@ -120,10 +173,13 @@ func _create_item(item_type, x, y):
 func _input(event):
 	if event is InputEventMouseMotion and dragging:
 		if dragged_item:
+			# Use to_local to get the mouse position relative to this Node2D
 			dragged_item.position = to_local(event.position) + drag_offset
 	elif event is InputEventMouseButton and not event.pressed and dragging:
+		# Use to_local to get the mouse position relative to this Node2D
 		end_drag(to_local(event.position))
 	elif event is InputEventScreenTouch and not event.pressed and dragging:
+		# Use to_local to get the touch position relative to this Node2D
 		end_drag(to_local(event.position))
 
 func _on_item_clicked(item, click_pos: Vector2):
@@ -134,6 +190,7 @@ func start_drag(item, pos):
 	dragged_item = item
 	drag_start_pos = item.position
 	dragged_item.z_index = 1
+	# Use to_local to calculate the offset correctly
 	drag_offset = item.position - to_local(pos)
 	var grid_coords = _get_grid_coords_from_position(dragged_item.position)
 	start_x = grid_coords.x
@@ -211,7 +268,7 @@ func reset_item_position(item, grid_x, grid_y):
 func _get_cell_center(x, y):
 	var extra_offset_x = 0.0
 	var extra_offset_y = 0.0
-	# NEW: Use the 'use_shelf_gaps' variable to determine the offset
+	# Use the 'use_shelf_gaps' variable to determine the offset
 	if use_shelf_gaps:
 		extra_offset_x = (x / 3) * shelf_gap_x
 		extra_offset_y = (y / 1) * shelf_gap_y
@@ -298,7 +355,7 @@ func add_score(matched_count):
 	var time_added = matched_count * bonus_time_per_match
 	time_left += time_added
 	
-	# NEW: Improved pop-up animation for the player message
+	# Improved pop-up animation for the player message
 	if playerMsg_label != null:
 		# Reset position, scale, and modulate to initial state
 		playerMsg_label.position = playerMsg_initial_position

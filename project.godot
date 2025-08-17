@@ -10,8 +10,8 @@ config_version=5
 
 [application]
 
-config/name="New Game Project"
-run/main_scene="uid://dtn8dj2fi37m6"
+config/name="My Kingdom 3s"
+run/main_scene="uid://y6wbqxuglns1"
 config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.svg"
 

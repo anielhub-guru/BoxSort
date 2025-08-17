@@ -1,14 +1,133 @@
-[gd_scene load_steps=2 format=3 uid="uid://bd64stdd2uuwb"]
+[gd_scene load_steps=11 format=3 uid="uid://y6wbqxuglns1"]
 
-[ext_resource type="PackedScene" uid="uid://pg3fayeowjo" path="res://scene/grid.tscn" id="1_itxqv"]
+[ext_resource type="Script" uid="uid://dxpd74132mg6j" path="res://scripts/Main.gd" id="1_4j5ol"]
+[ext_resource type="Texture2D" uid="uid://dn0tmre1777db" path="res://images/bg.png" id="2_p1hux"]
+[ext_resource type="LabelSettings" uid="uid://bvipd1merppx4" path="res://resources/title_font200.tres" id="3_of57s"]
+[ext_resource type="FontFile" uid="uid://c038h6ujs55ti" path="res://font/AkayaKanadaka-Regular.ttf" id="4_b5f6u"]
+[ext_resource type="LabelSettings" uid="uid://6m63ccg5kegf" path="res://resources/title_font_white_130.tres" id="5_tqoya"]
+[ext_resource type="AudioStream" uid="uid://blntcyd3r3crd" path="res://audio/MKT_BGM_Harvest Harmony.mp3" id="6_k65ib"]
 
-[node name="CanvasLayer" type="CanvasLayer"]
+[sub_resource type="LabelSettings" id="LabelSettings_4j5ol"]
+line_spacing = -38.0
+font = ExtResource("4_b5f6u")
+font_size = 100
+font_color = Color(1, 0.701961, 0.278431, 1)
+outline_size = 11
+outline_color = Color(0.447343, 0.121644, 1.92523e-07, 1)
+shadow_size = 40
+shadow_color = Color(0, 0, 0, 0.211765)
 
-[node name="CenterContainer" type="CenterContainer" parent="."]
+[sub_resource type="Animation" id="Animation_0ha60"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_brvut"]
+resource_name = "flash"
+length = 5.0
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 2.5, 4.86667),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(1, 1, 1, 0.478431), Color(1, 1, 1, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_4j5ol"]
+_data = {
+&"RESET": SubResource("Animation_0ha60"),
+&"flash": SubResource("Animation_brvut")
+}
+
+[node name="Main" type="Control"]
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("1_4j5ol")
 
-[node name="Grid" parent="CenterContainer" instance=ExtResource("1_itxqv")]
+[node name="textureRect" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 1.0
+offset_right = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_p1hux")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 50
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 50
+
+[node name="titleLabel" type="Label" parent="MarginContainer"]
+layout_mode = 2
+size_flags_vertical = 0
+text = "My 
+Kingdom 3's"
+label_settings = ExtResource("3_of57s")
+horizontal_alignment = 1
+
+[node name="highscoreLabel" type="Label" parent="MarginContainer"]
+layout_mode = 2
+size_flags_vertical = 8
+text = "Highscore"
+label_settings = SubResource("LabelSettings_4j5ol")
+
+[node name="scoreLabel" type="Label" parent="MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 8
+text = "000"
+label_settings = SubResource("LabelSettings_4j5ol")
+
+[node name="playLabel" type="Label" parent="MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Click
+to Play"
+label_settings = ExtResource("5_tqoya")
+horizontal_alignment = 1
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="MarginContainer/playLabel"]
+libraries = {
+&"": SubResource("AnimationLibrary_4j5ol")
+}
+autoplay = "flash"
+
+[node name="Music" type="AudioStreamPlayer" parent="MarginContainer/playLabel/AnimationPlayer"]
+stream = ExtResource("6_k65ib")
+volume_db = -20.0
+autoplay = true
+
+[connection signal="gui_input" from="MarginContainer/playLabel" to="." method="_on_play_label_gui_input"]
+[connection signal="mouse_entered" from="MarginContainer/playLabel" to="." method="_on_play_label_mouse_entered"]
