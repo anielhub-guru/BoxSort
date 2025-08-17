@@ -5,7 +5,7 @@
 [ext_resource type="LabelSettings" uid="uid://bvipd1merppx4" path="res://resources/title_font200.tres" id="2_xwcet"]
 [ext_resource type="Texture2D" uid="uid://bbi0mndtirqjq" path="res://images/grassplain_bg.png" id="4_xlg7c"]
 [ext_resource type="Texture2D" uid="uid://b2i8s6goe73in" path="res://images/UI.png" id="4_xwcet"]
-[ext_resource type="AudioStream" uid="uid://d3g64v5sxc0i6" path="res://audio/MKT_gameplay1.mp3" id="5_p1ry8"]
+[ext_resource type="AudioStream" path="res://audio/MKT_gameplay1.mp3" id="5_p1ry8"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_c73ev"]
 font = ExtResource("1_dbls1")
