@@ -7,7 +7,7 @@ var cell_size = 90
 var shelf_gap_x = 10  # You can now adjust the horizontal gap between tiles
 var shelf_gap_y = 15  # You can now adjust the vertical gap between tiles
 var use_shelf_gaps = false  # Set to 'true' for the old shelf gap, 'false' for a uniform gap
-
+var padding = 60 	# Define the padding amount
 # Game state and data
 var grid_data = []
 var draggable_item_scene = preload("res://scene/DraggableItem.tscn")
@@ -63,14 +63,22 @@ func _ready():
 	# of this Node2D in the scene tree.
 	var background_panel = get_node("Panel")
 	if background_panel != null:
-		# Define the padding amount
-		var padding = 30
-		
+
 		# Set the size to be the grid size plus the padding
 		background_panel.size = Vector2(grid_total_width + padding, grid_total_height + padding)
-		
 		# Offset the position by half of the padding to center the background
 		background_panel.position = Vector2(-padding / 2, -padding / 2)
+		
+		# Get the StyleBoxFlat resource from the Panel
+		var stylebox_panel = background_panel.get_theme_stylebox("panel")
+		
+		# Check if the resource is a StyleBoxFlat and set the border properties
+		if stylebox_panel is StyleBoxFlat:
+			stylebox_panel.border_width_top = 10
+			stylebox_panel.border_width_bottom = 10
+			stylebox_panel.border_width_left = 10
+			stylebox_panel.border_width_right = 10
+			stylebox_panel.border_color = Color("#c8a13a")
 	
 	var border_node = get_node("Line2D")
 	if border_node != null:
