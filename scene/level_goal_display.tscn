@@ -1,0 +1,35 @@
+[gd_scene load_steps=2 format=3 uid="uid://dxrm6xngl0n77"]
+
+[ext_resource type="Script" uid="uid://q0u1ww7k3kmi" path="res://scripts/level_goals_display.gd" id="1_qrpnt"]
+
+[node name="Control" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="Node2D" type="Node2D" parent="." node_paths=PackedStringArray("goal_label")]
+script = ExtResource("1_qrpnt")
+goal_label = NodePath("Label")
+
+[node name="Label" type="RichTextLabel" parent="Node2D"]
+offset_left = -567.0
+offset_top = -61.0
+offset_right = 567.0
+offset_bottom = 61.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+bbcode_enabled = true
+text = "bbbbbbbbbbbbbbbbbb"
+fit_content = true
+scroll_active = false
+horizontal_alignment = 1
+vertical_alignment = 1
+justification_flags = 161
+metadata/_edit_use_anchors_ = true

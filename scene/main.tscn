@@ -5,7 +5,7 @@
 [ext_resource type="LabelSettings" uid="uid://bvipd1merppx4" path="res://resources/title_font200.tres" id="3_of57s"]
 [ext_resource type="FontFile" uid="uid://c038h6ujs55ti" path="res://font/AkayaKanadaka-Regular.ttf" id="4_b5f6u"]
 [ext_resource type="LabelSettings" uid="uid://6m63ccg5kegf" path="res://resources/title_font_white_130.tres" id="5_tqoya"]
-[ext_resource type="AudioStream" path="res://audio/MKT_BGM_Harvest Harmony.mp3" id="6_k65ib"]
+[ext_resource type="AudioStream" uid="uid://cpuj3d5j74lks" path="res://audio/MKT_BGM_Harvest Harmony.mp3" id="6_k65ib"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_4j5ol"]
 line_spacing = -38.0

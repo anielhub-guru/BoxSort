@@ -2,11 +2,7 @@
 
 importer="mp3"
 type="AudioStreamMP3"
-<<<<<<< HEAD
-uid="uid://dibh3vaqevngl"
-=======
-uid="uid://dgaru8btwcer3"
->>>>>>> 213a7d5 (playable demo)
+uid="uid://v0maghpebx5d"
 path="res://.godot/imported/MTK_title2.mp3-3b85c06f4b09cda1b6e098702578959b.mp3str"
 
 [deps]

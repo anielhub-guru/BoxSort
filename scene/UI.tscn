@@ -53,7 +53,5 @@ layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 
-[node name="Grid" parent="MarginContainer" node_paths=PackedStringArray("time_label", "playerMsg_label") instance=ExtResource("1_c73ev")]
-position = Vector2(50, 50)
-time_label = NodePath("../../VBoxContainer/Timer")
-playerMsg_label = NodePath("../../VBoxContainer/playerMsg")
+[node name="Grid" parent="MarginContainer" instance=ExtResource("1_c73ev")]
+layout_mode = 2

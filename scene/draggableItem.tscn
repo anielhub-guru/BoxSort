@@ -1,10 +1,17 @@
-[gd_scene load_steps=4 format=3 uid="uid://b26f00tdwtxab"]
+[gd_scene load_steps=6 format=3 uid="uid://b26f00tdwtxab"]
 
-[ext_resource type="Texture2D" uid="uid://bulfc4wc30t5s" path="res://icon.svg" id="1_g2npu"]
 [ext_resource type="Script" uid="uid://ne2353et8207" path="res://scripts/draggableItem.gd" id="2_0klcd"]
+[ext_resource type="Shader" uid="uid://dhwfaq37eglfr" path="res://shaders/ItemGlow.gdshader" id="2_3jwa8"]
+[ext_resource type="Texture2D" uid="uid://tf6jvooiso2u" path="res://images/godot-Icon-white.svg" id="2_g2npu"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_g2npu"]
 size = Vector2(119, 110)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_oy2m8"]
+shader = ExtResource("2_3jwa8")
+shader_parameter/base_color = Color(0, 0, 0, 1)
+shader_parameter/pulse_speed = 2.0
+shader_parameter/pulse_strength = 0.1
 
 [node name="DraggableItem" type="Node2D"]
 script = ExtResource("2_0klcd")
@@ -16,6 +23,7 @@ position = Vector2(-0.5, 0)
 shape = SubResource("RectangleShape2D_g2npu")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-texture = ExtResource("1_g2npu")
+material = SubResource("ShaderMaterial_oy2m8")
+texture = ExtResource("2_g2npu")
 
 [connection signal="input_event" from="Area2D" to="." method="_on_area_2d_input_event"]

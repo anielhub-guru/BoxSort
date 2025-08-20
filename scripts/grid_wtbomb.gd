@@ -1,69 +1,25 @@
-# grid.gd
-# Renamed from grid.gd to Game.gd to represent the main game logic.
-
 extends Node2D
 
-class_name Game
-
-# --- Game Board Properties ---
-# These variables control the size and layout of the game grid.
+# Game board and item properties
 var grid_width = 6
 var grid_height = 6
 var cell_size = 90
 var shelf_gap_x = 10
 var shelf_gap_y = 15
-var use_shelf_gaps = false # Flag to enable/disable visual gaps
+var use_shelf_gaps = false
 var padding = 60
 
-# --- Game State and Data ---
-# Stores the current state of the game board and game-related information.
-var grid_data = [] # A 2D array to hold references to DraggableItem nodes
+# Game state and data
+var grid_data = []
 var draggable_item_scene = preload("res://scene/DraggableItem.tscn")
-# Colors for the different item types in the game.
 const colors = [
-	Color8(77, 255, 255), # Cyan
-	Color8(255, 179, 77), # Orange
-	Color8(82, 224, 149) # Green
+	Color8(77, 255, 255),
+	Color8(255, 179, 77),
+	Color8(82, 224, 149)
 ]
-const BOMB_MATCH_COUNT = 4 # Number of matching items to create a bomb
-const POWERUP_BOMB_TYPE = 100 # A constant added to an item type to make it a bomb
+const BOMB_MATCH_COUNT = 4
+const POWERUP_BOMB_TYPE = 100
 
-# --- Level Goal System ---
-var level_goals = {} # Dictionary to store goals for each color type (e.g., {0: 15, 1: 10})
-var level_progress = {} # Dictionary to track progress for each color type (e.g., {0: 5, 1: 3})
-var is_level_complete = false
-var score = 0
-
-# --- Drag and Drop Variables ---
-# These variables manage the state of dragging and swapping items.
-var dragging = false
-var drag_start_pos = Vector2()
-var drag_offset = Vector2()
-var dragged_item: Node2D = null
-var target_item: Node2D = null
-var start_x = 0
-var start_y = 0
-
-# --- Timer Variables ---
-var time_limit = 30.0 # Initial time limit for the level
-var time_left = 0.0
-var is_game_over = false
-
-# --- References to UI Elements ---
-# These variables will be assigned references to UI nodes at runtime.
-var time_label: Label
-var playerMsg_label: Label
-var goal_label: Label
-@export var bonus_time_per_match: float = 0.5 # Time added for each matched item
-var playerMsg_initial_position: Vector2
-
-# New dictionary to hold a colored texture for each type
-var color_textures: Dictionary = {}
-
-# --- Processing State ---
-var is_processing_cascade = false # Prevents input during match cascades
-
-# --- Utility Functions for Item Types ---
 func _is_powerup_bomb(item_type):
 	return item_type >= POWERUP_BOMB_TYPE
 
@@ -72,18 +28,40 @@ func _get_base_type(item_type):
 		return item_type - POWERUP_BOMB_TYPE
 	return item_type
 
-# --- Core Functions ---
+var score = 0
+
+# Drag and drop variables
+var dragging = false
+var drag_start_pos = Vector2()
+var drag_offset = Vector2()
+var dragged_item: Node2D = null
+var target_item: Node2D = null
+var start_x = 0
+var start_y = 0
+
+# Timer variables
+var time_limit = 10.0
+var time_left = 0.0
+var is_game_over = false
+
+# References to UI elements
+var time_label: Label
+var playerMsg_label: Label
+@export var bonus_time_per_match: float = 0.5
+var playerMsg_initial_position: Vector2
+
+# Processing state
+var is_processing_cascade = false
+
 func _ready():
 	print("--- Game Started ---")
 	randomize()
 	
-	# Calculate total grid dimensions and position the grid in the center of the viewport.
 	var grid_total_width = (grid_width * cell_size) + ((grid_width - 1) * shelf_gap_x)
 	var grid_total_height = (grid_height * cell_size) + ((grid_height - 1) * shelf_gap_y)
 	
 	position = Vector2(-grid_total_width / 2, -grid_total_height / 2)
 	
-	# Configure the background panel and border.
 	var background_panel = get_node("Panel")
 	if background_panel != null:
 		background_panel.size = Vector2(grid_total_width + padding, grid_total_height + padding)
@@ -96,39 +74,37 @@ func _ready():
 			stylebox_panel.border_width_right = 10
 			stylebox_panel.border_color = Color("#c8a13a")
 
+	var border_node = get_node("Line2D")
+	if border_node != null:
+		border_node.clear_points()
+		border_node.add_point(background_panel.position)
+		border_node.add_point(background_panel.position + Vector2(background_panel.size.x, 0))
+		border_node.add_point(background_panel.position + background_panel.size)
+		border_node.add_point(background_panel.position + Vector2(0, background_panel.size.y))
+		border_node.add_point(background_panel.position)
+		border_node.default_color = Color("#000000")
+		border_node.width = 5
 
-
-	#Function to populate the color dictionary for display
-	_preload_color_textures()
-	# Generate the initial grid and set up the level.
 	_generate_grid()
-	_setup_level_goals()
 	time_left = time_limit
 	
-	# Get references to the UI nodes.
 	time_label = get_node("../../../UI/VBoxContainer/Timer")
 	playerMsg_label = get_node("../../../UI/VBoxContainer/playerMsg")
-	goal_label = get_node("../../../UI/VBoxContainer/Goals")
 
 	if playerMsg_label != null:
 		playerMsg_label.hide()
 		playerMsg_initial_position = playerMsg_label.position
 
 func _process(delta):
-	# Update the game state and UI every frame.
 	if time_label != null:
-		if not is_game_over and not is_level_complete:
+		if not is_game_over:
 			time_left -= delta
 			if time_left <= 0:
 				time_left = 0
 				game_over()
 			time_label.text = "Time: " + str(int(time_left)) +"\nScore: " + str(score)
-		elif is_level_complete:
-			level_complete()
 		else:
 			game_over()
-	
-	_update_goal_display()
 
 func _generate_grid():
 	print("Generating grid...")
@@ -142,7 +118,6 @@ func _generate_grid():
 	print("Grid generation complete.")
 
 func _get_random_item_type(x, y):
-	# Ensures no immediate matches are created on the initial grid generation.
 	var possible_types = range(colors.size())
 	if x >= 2:
 		var t1 = _get_base_type(grid_data[x-1][y].item_type)
@@ -159,7 +134,6 @@ func _get_random_item_type(x, y):
 	return possible_types[randi() % possible_types.size()]
 
 func _create_item(item_type, x, y, is_bomb = false):
-	# Creates a new item instance and places it on the grid.
 	var item_instance = draggable_item_scene.instantiate()
 
 	if is_bomb:
@@ -172,13 +146,16 @@ func _create_item(item_type, x, y, is_bomb = false):
 
 	var sprite_instance = item_instance.get_node("Sprite2D")
 
+	# Create a new material instance and assign it.
 	var new_material = sprite_instance.material.duplicate()
 	sprite_instance.material = new_material
 
+	# Set the base color for the item using the shader uniform
 	var item_color = colors[_get_base_type(item_instance.item_type)]
 	new_material.set_shader_parameter("base_color", item_color)
 
 	if not _is_powerup_bomb(item_instance.item_type):
+		# For non-bomb tiles, set the pulse strength to 0 so they don't pulse.
 		new_material.set_shader_parameter("pulse_strength", 0.0)
 
 	var tex_size = sprite_instance.texture.get_size()
@@ -203,7 +180,6 @@ func _create_item(item_type, x, y, is_bomb = false):
 	return item_instance
 
 func _input(event):
-	# Handles user input for dragging and dropping items.
 	if is_processing_cascade:
 		return
 		
@@ -250,13 +226,16 @@ func end_drag(pos):
 				attempt_swap(dragged_item, target_item, start_x, start_y, end_coords.x, end_coords.y)
 				await get_tree().create_timer(0.2).timeout
 
+				# Check if the initial swap created a match.
 				print("Checking for initial match...")
 				var initial_match_found = await check_for_matches()
 				print("Initial match found: ", initial_match_found)
 				if initial_match_found:
+					# If so, start the cascade.
 					print("Initial match found, starting cascade.")
 					await _handle_cascade()
 				else:
+					# If not, swap the items back.
 					print("No initial match found, swapping back.")
 					attempt_swap(dragged_item, target_item, end_coords.x, end_coords.y, start_x, start_y)
 				is_processing_cascade = false
@@ -274,7 +253,6 @@ func end_drag(pos):
 	target_item = null
 
 func _get_grid_coords_from_position(pos: Vector2) -> Vector2:
-	# Calculates the nearest grid coordinates for a given screen position.
 	var closest_pos = Vector2(-1, -1)
 	var min_dist_sq = INF
 
@@ -292,7 +270,6 @@ func _is_inside_grid(x, y):
 	return x >= 0 and x < grid_width and y >= 0 and y < grid_height
 
 func attempt_swap(item1, item2, x1, y1, x2, y2):
-	# Swaps two items on the grid and animates their movement.
 	print("Attempting to swap items at (", x1, ",", y1, ") and (", x2, ",", y2, ")")
 	var pos1 = _get_cell_center(x1, y1)
 	var pos2 = _get_cell_center(x2, y2)
@@ -314,7 +291,6 @@ func reset_item_position(item, grid_x, grid_y):
 	item.position = _get_cell_center(grid_x, grid_y)
 
 func _get_cell_center(x, y):
-	# Calculates the center position of a cell on the screen.
 	var extra_offset_x = 0.0
 	var extra_offset_y = 0.0
 	if use_shelf_gaps:
@@ -330,138 +306,18 @@ func _get_cell_center(x, y):
 	)
 
 # -------------------------------
-# Level Goal System
-# -------------------------------
-func _setup_level_goals():
-	"""Setup goals for the current level. This can be customized per level."""
-	print("Setting up level goals...")
-	
-	level_goals.clear()
-	level_progress.clear()
-	
-	# Example goals for different levels - you can modify these or make them configurable
-
-	var goals_to_set: Dictionary = {
-		0: 15, # Cyan tiles
-		1: 10, # Orange tiles
-		2: 8,  # Green tiles
-	}
-	
-	print_rich("[color=yellow]level goals[/color]: ","[color=15]goal1[/color]")
-	
-	# Pass the preloaded textures directly
-	var tile_info_to_set = color_textures
-	print_rich("[color=purple]yyyyyy[/color]")
-	print(tile_info_to_set)
-	print_rich("[color=purple]yyyyyy[/color]")
-	
-	level_goals = goals_to_set.duplicate()
-	level_progress.clear()
-	
-	for color_type in level_goals.keys():
-		level_progress[color_type] = 0
-	
-	is_level_complete = false
-	print("Level goals set: ", level_goals)
-	
-	# Send goals and tile info to Global singleton.
-	Global.set_goals(level_goals, tile_info_to_set, colors)
-
-# New function to create and store colored textures
-func _preload_color_textures():
-	var item_instance = draggable_item_scene.instantiate()
-	var sprite = item_instance.get_node("Sprite2D")
-	var base_texture = sprite.texture
-	
-	for i in range(colors.size()):
-		var temp_sprite = Sprite2D.new()
-		temp_sprite.texture = base_texture
-		temp_sprite.modulate = colors[i]
-		
-		var viewport = SubViewport.new() # Use SubViewport in Godot 4
-		viewport.size = Vector2(32, 32) # Set a small size for the viewport
-		viewport.add_child(temp_sprite)
-		add_child(viewport)
-		
-		# Wait for the viewport to be ready before capturing the texture
-		await get_tree().process_frame
-		
-		# Render the colored sprite to a new texture
-		var rendered_texture = viewport.get_texture()
-		color_textures[i] = rendered_texture
-		
-		viewport.queue_free()
-	item_instance.queue_free()
-	_setup_level_goals()
-
-
-
-func set_custom_level_goals(goals_dict: Dictionary, tile_info_to_set: Dictionary):
-	"""Allow setting custom goals for different levels"""
-	level_goals = goals_dict.duplicate()
-	level_progress.clear()
-	
-	for color_type in level_goals.keys():
-		level_progress[color_type] = 0
-	
-	is_level_complete = false
-	print("Custom level goals set: ", level_goals)
-	
-	# Send goals to Global singleton
-	Global.set_goals(level_goals, tile_info_to_set, colors)
-
-func _update_goal_display():
-	"""Update the goal display UI - now handled by Global singleton"""
-	# Since Global singleton handles the display updates,
-	# we just need to check for level completion
-	_check_level_completion()
-
-func _check_level_completion():
-	"""Check if all level goals have been met"""
-	# Check using Global singleton
-	var goals_complete = Global.are_goals_complete()
-	if goals_complete and not is_level_complete:
-		is_level_complete = true
-		return true
-	return false
-
-func level_complete():
-	"""Handle level completion"""
-	var completion_text = "LEVEL COMPLETE!\nScore: " + str(score) + "\nTime Bonus: " + str(int(time_left * 10))
-	if not is_game_over:
-		is_game_over = true
-		score += int(time_left * 10)
-		print("You win! Final Score: ", score)
-		print("Ending level!!!")
-		if time_label != null:
-			time_label.text = completion_text
-			game_over(completion_text)
-
-func game_over(completion_text = null):
-	var final_score = "Game Over! \nScore: " + str(score)
-	if completion_text:
-		final_score = completion_text
-	if not is_game_over:
-		is_game_over = true
-		print(final_score)
-		if time_label != null:
-			time_label.text = final_score
-	else:
-		time_label.text = final_score
-
-
-
-# -------------------------------
 # Match Detection and Gameplay Logic
 # -------------------------------
 func _handle_cascade():
 	print("--- Starting Cascade ---")
 	var cascade_round = 0
 	
+	# Always apply gravity and refill after the initial match removal
 	print("Post-match cleanup: Applying gravity and refilling.")
 	await apply_gravity()
 	await refill_grid()
 	
+	# Continue checking for cascading matches
 	var matches_found_in_round = true
 	while matches_found_in_round:
 		cascade_round += 1
@@ -480,8 +336,6 @@ func check_for_matches() -> bool:
 	print("Checking for matches...")
 	var to_remove = {}
 	var new_bombs_to_create = {}
-
-	set_meta("bomb_affected_tiles", [])
 
 	# Check for horizontal matches of 3 or more
 	for y in range(grid_height):
@@ -511,29 +365,8 @@ func check_for_matches() -> bool:
 
 	print("Matches found:", to_remove.size() > 0 or new_bombs_to_create.size() > 0)
 	if to_remove.size() > 0 or new_bombs_to_create.size() > 0:
-		var bomb_affected_tiles = get_meta("bomb_affected_tiles")
-		var has_bomb_effect = bomb_affected_tiles.size() > 0
-		
-		if has_bomb_effect:
-			var bomb_positions = []
-			var regular_positions = []
-			
-			for pos in to_remove.keys():
-				if pos in bomb_affected_tiles:
-					bomb_positions.append(pos)
-				else:
-					regular_positions.append(pos)
-			
-			if bomb_positions.size() > 0:
-				highlight_and_remove(bomb_positions, true)
-				await get_tree().create_timer(0.1).timeout
-			
-			if regular_positions.size() > 0:
-				highlight_and_remove(regular_positions, false)
-				await get_tree().create_timer(0.1).timeout
-		else:
-			highlight_and_remove(to_remove.keys(), false)
-			await get_tree().create_timer(0.2).timeout
+		highlight_and_remove(to_remove.keys())
+		await get_tree().create_timer(0.2).timeout
 
 		for pos in new_bombs_to_create:
 			var base_type = new_bombs_to_create[pos]
@@ -545,7 +378,6 @@ func check_for_matches() -> bool:
 	return false
 
 func _process_match(x: int, y: int, direction: String, length: int, to_remove: Dictionary, new_bombs_to_create: Dictionary):
-	# Processes a detected match, handles bomb creation and removal.
 	print("Processing a ", length, " ", direction, " match at (", x, ",", y, ")")
 	var base_type = _get_base_type(grid_data[x][y].item_type)
 	var matched_items = []
@@ -589,58 +421,28 @@ func _process_match(x: int, y: int, direction: String, length: int, to_remove: D
 				to_remove[Vector2(item.get_grid_x(), item.get_grid_y())] = true
 
 func _trigger_powerup_effect(pos: Vector2, to_remove: Dictionary):
-	# Triggers the bomb effect, adding affected tiles to the removal list.
 	print("Triggering powerup effect at (", pos.x, ",", pos.y, ")")
 	var x = int(pos.x)
 	var y = int(pos.y)
-	var bomb_affected_tiles = []
-	
 	for dx in range(-1, 2):
 		for dy in range(-1, 2):
 			var new_x = x + dx
 			var new_y = y + dy
 			if _is_inside_grid(new_x, new_y):
 				if grid_data[new_x][new_y] != null:
-					var tile_pos = Vector2(new_x, new_y)
-					to_remove[tile_pos] = true
-					bomb_affected_tiles.append(tile_pos)
-	
-	if not has_meta("bomb_affected_tiles"):
-		set_meta("bomb_affected_tiles", [])
-	var current_bomb_tiles = get_meta("bomb_affected_tiles")
-	current_bomb_tiles.append_array(bomb_affected_tiles)
-	set_meta("bomb_affected_tiles", current_bomb_tiles)
+					to_remove[Vector2(new_x, new_y)] = true
 
-func highlight_and_remove(matched_positions, is_bomb_effect = false):
-	# Animates the removal of matched items and frees them.
+func highlight_and_remove(matched_positions):
 	print("Highlighting and removing ", matched_positions.size(), " tiles.")
-	
-	_track_goal_progress(matched_positions)
 	add_score(matched_positions.size())
 
-	if is_bomb_effect:
-		var tween = create_tween().set_parallel(true)
-		
-		for pos in matched_positions:
-			var gx = int(pos.x)
-			var gy = int(pos.y)
-			if _is_inside_grid(gx, gy) and grid_data[gx][gy]:
-				var item = grid_data[gx][gy]
-				var sprite = item.get_node("Sprite2D")
-				
-				sprite.modulate = Color(1, 1, 0)
-				tween.tween_property(item, "scale", Vector2(1.2, 1.2), 0.1)
-				tween.tween_property(item, "scale", Vector2(0, 0), 0.3).set_delay(0.1)
+	for pos in matched_positions:
+		var gx = int(pos.x)
+		var gy = int(pos.y)
+		if _is_inside_grid(gx, gy) and grid_data[gx][gy]:
+			grid_data[gx][gy].get_node("Sprite2D").modulate = Color(1, 1, 0)
 
-		await tween.finished
-	else:
-		for pos in matched_positions:
-			var gx = int(pos.x)
-			var gy = int(pos.y)
-			if _is_inside_grid(gx, gy) and grid_data[gx][gy]:
-				grid_data[gx][gy].get_node("Sprite2D").modulate = Color(1, 1, 0)
-
-		await get_tree().create_timer(0.2).timeout
+	await get_tree().create_timer(0.2).timeout
 
 	for pos in matched_positions:
 		var gx = int(pos.x)
@@ -648,71 +450,10 @@ func highlight_and_remove(matched_positions, is_bomb_effect = false):
 		if _is_inside_grid(gx, gy) and grid_data[gx][gy]:
 			grid_data[gx][gy].queue_free()
 			grid_data[gx][gy] = null
-	
-	_check_level_completion()
-	
 	print("Finished removing tiles.")
 
-func _track_goal_progress(matched_positions):
-	"""Track progress towards level goals when tiles are matched"""
-	var color_counts = {}
-	
-	for pos in matched_positions:
-		var gx = int(pos.x)
-		var gy = int(pos.y)
-		if _is_inside_grid(gx, gy) and grid_data[gx][gy]:
-			var item = grid_data[gx][gy]
-			var base_color_type = _get_base_type(item.item_type)
-			
-			if not color_counts.has(base_color_type):
-				color_counts[base_color_type] = 0
-			color_counts[base_color_type] += 1
-	
-	# Update progress in both local tracking and Global singleton
-	for color_type in color_counts.keys():
-		if level_goals.has(color_type):
-			level_progress[color_type] += color_counts[color_type]
-			# Update Global singleton progress
-			Global.update_progress(color_type, color_counts[color_type])
-			print("Goal progress for color ", color_type, ": ", level_progress[color_type], "/", level_goals[color_type])
-	
-	var total_progress = 0
-	for count in color_counts.values():
-		total_progress += count
-	
-	if total_progress > 0:
-		_show_goal_progress_message(color_counts)
-
-func _show_goal_progress_message(color_counts):
-	"""Show a message about goal progress"""
-	if playerMsg_label == null:
-		return
-	
-	var color_names = ["Cyan", "Orange", "Green"]
-	var progress_text = ""
-	
-	for color_type in color_counts.keys():
-		if level_goals.has(color_type):
-			var count = color_counts[color_type]
-			var color_name = color_names[color_type] if color_type < color_names.size() else "Color " + str(color_type)
-			if progress_text != "":
-				progress_text += "\n"
-			progress_text += "+" + str(count) + " " + color_name
-	
-	if progress_text != "":
-		playerMsg_label.position = playerMsg_initial_position + Vector2(0, 50)
-		playerMsg_label.scale = Vector2(0.8, 0.8)
-		playerMsg_label.modulate = Color(0.8, 1, 0.8, 1)
-		playerMsg_label.text = progress_text
-		playerMsg_label.show()
-
-		var tween = create_tween()
-		tween.tween_property(playerMsg_label, "position", playerMsg_initial_position + Vector2(0, 20), 1.2)
-		tween.tween_property(playerMsg_label, "modulate", Color(0.8, 1, 0.8, 0), 1.2).set_delay(0.5)
-		tween.tween_callback(Callable(playerMsg_label, "hide"))
-
 func add_score(matched_count):
-	if is_game_over or is_level_complete:
+	if is_game_over:
 		return
 
 	score += matched_count * 10
@@ -728,11 +469,22 @@ func add_score(matched_count):
 		playerMsg_label.show()
 
 		var tween = create_tween()
+
 		tween.tween_property(playerMsg_label, "position", playerMsg_initial_position - Vector2(0, 30), 1.0)
 		tween.tween_property(playerMsg_label, "scale", Vector2(0.5, 0.5), 1.0)
 		tween.tween_property(playerMsg_label, "modulate", Color(1, 1, 1, 0), 1.0).set_delay(0.25)
+
 		tween.tween_callback(Callable(playerMsg_label, "hide"))
 
+func game_over():
+	var final_score = "Game Over! \nScore: " + str(score)
+	if not is_game_over:
+		is_game_over = true
+		print(final_score)
+		if time_label != null:
+			time_label.text = final_score
+	else:
+		time_label.text = final_score
 
 func apply_gravity():
 	print("Applying gravity...")
@@ -747,13 +499,16 @@ func apply_gravity():
 		for y in range(grid_height - 1, -1, -1):
 			if grid_data[x][y] != null:
 				if y != write_index:
+					# Move item down
 					var item_to_move = grid_data[x][y]
 					grid_data[x][write_index] = item_to_move
 					grid_data[x][y] = null
 					
+					# Update item grid coordinates
 					item_to_move.grid_x = x
 					item_to_move.grid_y = write_index
 					
+					# Animate to new position
 					var new_pos = _get_cell_center(x, write_index)
 					tween.tween_property(item_to_move, "position", new_pos, 0.3)
 					tiles_moved = true
@@ -767,11 +522,13 @@ func refill_grid():
 	print("Refilling grid...")
 	var items_to_create = []
 	
+	# First pass: identify all empty cells and calculate drop distances
 	for x in range(grid_width):
 		var empty_count = 0
 		for y in range(grid_height):
 			if grid_data[x][y] == null:
 				empty_count += 1
+				# Store info about this empty cell
 				items_to_create.append({
 					"x": x,
 					"y": y,
@@ -782,6 +539,7 @@ func refill_grid():
 		print("No empty cells to refill.")
 		return
 	
+	# Create all new items with safe types (avoid immediate matches)
 	var tween = create_tween().set_parallel(true)
 	
 	for item_info in items_to_create:
@@ -789,16 +547,19 @@ func refill_grid():
 		var y = item_info.y
 		var drop_from = item_info.drop_from
 		
+		# Get a safe item type that won't create immediate matches
 		var item_type = _get_safe_refill_type(x, y)
 		var item_instance = _create_item(item_type, x, y)
 		grid_data[x][y] = item_instance
 		
+		# Set starting position above the grid
 		var start_pos = _get_cell_center(x, drop_from)
 		item_instance.position = start_pos
 		
+		# Animate to final position
 		var end_pos = _get_cell_center(x, y)
 		var drop_distance = y - drop_from
-		var drop_time = 0.1 + (drop_distance * 0.05)
+		var drop_time = 0.1 + (drop_distance * 0.05) # Longer drops take more time
 		
 		tween.tween_property(item_instance, "position", end_pos, drop_time)
 	
@@ -813,6 +574,7 @@ func _get_safe_refill_type(x: int, y: int) -> int:
 	while attempts < max_attempts:
 		var test_type = possible_types[randi() % possible_types.size()]
 		
+		# Check if this type would create immediate horizontal matches
 		var horizontal_safe = true
 		if x >= 2 and grid_data[x-1][y] != null and grid_data[x-2][y] != null:
 			var t1 = _get_base_type(grid_data[x-1][y].item_type)
@@ -820,6 +582,7 @@ func _get_safe_refill_type(x: int, y: int) -> int:
 			if t1 == t2 and t1 == test_type:
 				horizontal_safe = false
 		
+		# Check if this type would create immediate vertical matches
 		var vertical_safe = true
 		if y >= 2 and grid_data[x][y-1] != null and grid_data[x][y-2] != null:
 			var t1 = _get_base_type(grid_data[x][y-1].item_type)
@@ -832,4 +595,5 @@ func _get_safe_refill_type(x: int, y: int) -> int:
 		
 		attempts += 1
 	
+	# Fallback: return any type if we can't find a safe one
 	return randi() % colors.size()
