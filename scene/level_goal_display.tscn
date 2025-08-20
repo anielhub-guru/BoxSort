@@ -12,24 +12,16 @@ grow_vertical = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 
-[node name="Node2D" type="Node2D" parent="." node_paths=PackedStringArray("goal_label")]
+[node name="Node2D" type="Node2D" parent="." node_paths=PackedStringArray("goals_container")]
 script = ExtResource("1_qrpnt")
-goal_label = NodePath("Label")
+goals_container = NodePath("../GoalsContainer")
 
-[node name="Label" type="RichTextLabel" parent="Node2D"]
-offset_left = -567.0
-offset_top = -61.0
-offset_right = 567.0
-offset_bottom = 61.0
+[node name="GoalsContainer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 13
+anchor_left = 0.5
+anchor_right = 0.5
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-size_flags_horizontal = 4
-size_flags_vertical = 4
-bbcode_enabled = true
-text = "bbbbbbbbbbbbbbbbbb"
-fit_content = true
-scroll_active = false
-horizontal_alignment = 1
-vertical_alignment = 1
-justification_flags = 161
-metadata/_edit_use_anchors_ = true
+alignment = 1

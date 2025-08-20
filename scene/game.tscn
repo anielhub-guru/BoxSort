@@ -45,7 +45,6 @@ label_settings = SubResource("LabelSettings_p1ry8")
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 500
-text = "+0.5s"
 label_settings = SubResource("LabelSettings_c73ev")
 vertical_alignment = 2
 

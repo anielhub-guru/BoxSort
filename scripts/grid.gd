@@ -76,7 +76,10 @@ func _get_base_type(item_type):
 func _ready():
 	print("--- Game Started ---")
 	randomize()
+	color_textures = {}
 	
+	# Create the textures
+	await _preload_color_textures() 
 	# Calculate total grid dimensions and position the grid in the center of the viewport.
 	var grid_total_width = (grid_width * cell_size) + ((grid_width - 1) * shelf_gap_x)
 	var grid_total_height = (grid_height * cell_size) + ((grid_height - 1) * shelf_gap_y)
@@ -111,7 +114,6 @@ func _ready():
 	goal_label = get_node("../../../UI/VBoxContainer/Goals")
 
 	if playerMsg_label != null:
-		playerMsg_label.hide()
 		playerMsg_initial_position = playerMsg_label.position
 
 func _process(delta):
@@ -334,13 +336,14 @@ func _get_cell_center(x, y):
 # -------------------------------
 func _setup_level_goals():
 	"""Setup goals for the current level. This can be customized per level."""
+	print("=== SETUP LEVEL GOALS DEBUG ===")
 	print("Setting up level goals...")
 	
+	# Clear level-specific dictionaries (NOT color_textures!)
 	level_goals.clear()
 	level_progress.clear()
 	
 	# Example goals for different levels - you can modify these or make them configurable
-
 	var goals_to_set: Dictionary = {
 		0: 15, # Cyan tiles
 		1: 10, # Orange tiles
@@ -349,49 +352,70 @@ func _setup_level_goals():
 	
 	print_rich("[color=yellow]level goals[/color]: ","[color=15]goal1[/color]")
 	
-	# Pass the preloaded textures directly
-	var tile_info_to_set = color_textures
-	print_rich("[color=purple]yyyyyy[/color]")
-	print(tile_info_to_set)
-	print_rich("[color=purple]yyyyyy[/color]")
+	# DEBUG: Check color_textures before using it
+	print("color_textures dictionary: ", color_textures)
+	print("color_textures size: ", color_textures.size())
+	for key in color_textures.keys():
+		print("  Key ", key, ": ", color_textures[key], " (size: ", color_textures[key].get_size() if color_textures[key] else "null", ")")
 	
+	# Pass the preloaded textures directly
+	var tile_info_to_set = color_textures.duplicate()  # Make a copy to be safe
 	level_goals = goals_to_set.duplicate()
-	level_progress.clear()
 	
 	for color_type in level_goals.keys():
 		level_progress[color_type] = 0
 	
 	is_level_complete = false
 	print("Level goals set: ", level_goals)
+	print("tile_info_to_set: ", tile_info_to_set)
 	
 	# Send goals and tile info to Global singleton.
 	Global.set_goals(level_goals, tile_info_to_set, colors)
+	print("=== SETUP LEVEL GOALS COMPLETE ===")
 
 # New function to create and store colored textures
 func _preload_color_textures():
+	print("=== TEXTURE CREATION DEBUG ===")
+	
+	# Make sure color_textures is initialized
+	color_textures = {}
+	
 	var item_instance = draggable_item_scene.instantiate()
 	var sprite = item_instance.get_node("Sprite2D")
 	var base_texture = sprite.texture
 	
+	print("Base texture: ", base_texture)
+	print("Base texture size: ", base_texture.get_size())
+	print("Colors array: ", colors)
+	
 	for i in range(colors.size()):
-		var temp_sprite = Sprite2D.new()
-		temp_sprite.texture = base_texture
-		temp_sprite.modulate = colors[i]
+		print("Creating texture for color ", i, ": ", colors[i])
 		
-		var viewport = SubViewport.new() # Use SubViewport in Godot 4
-		viewport.size = Vector2(32, 32) # Set a small size for the viewport
-		viewport.add_child(temp_sprite)
+		var colored_sprite = Sprite2D.new()
+		colored_sprite.texture = base_texture
+		colored_sprite.modulate = colors[i]
+		
+		var viewport = SubViewport.new()
+		viewport.size = base_texture.get_size()
+		viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+		
+		viewport.add_child(colored_sprite)
 		add_child(viewport)
 		
-		# Wait for the viewport to be ready before capturing the texture
+		await get_tree().process_frame
 		await get_tree().process_frame
 		
-		# Render the colored sprite to a new texture
-		var rendered_texture = viewport.get_texture()
-		color_textures[i] = rendered_texture
+		var viewport_texture = viewport.get_texture()
+		print("Created viewport texture: ", viewport_texture)
+		print("Viewport texture size: ", viewport_texture.get_size())
 		
-		viewport.queue_free()
+		color_textures[i] = viewport_texture
+		
+		# DON'T free the viewport - keep it alive!
+		print("Stored texture at index ", i)
+	
 	item_instance.queue_free()
+	print("Final color_textures: ", color_textures)
 	_setup_level_goals()
 
 
@@ -695,21 +719,18 @@ func _show_goal_progress_message(color_counts):
 		if level_goals.has(color_type):
 			var count = color_counts[color_type]
 			var color_name = color_names[color_type] if color_type < color_names.size() else "Color " + str(color_type)
+			var phrases = ["Great Job!", "Well done!", "Amazing!", "Wow!"]
+			var random_phrase = phrases.pick_random()
 			if progress_text != "":
-				progress_text += "\n"
-			progress_text += "+" + str(count) + " " + color_name
+				progress_text += "..."
+			progress_text += random_phrase
 	
 	if progress_text != "":
-		playerMsg_label.position = playerMsg_initial_position + Vector2(0, 50)
 		playerMsg_label.scale = Vector2(0.8, 0.8)
 		playerMsg_label.modulate = Color(0.8, 1, 0.8, 1)
 		playerMsg_label.text = progress_text
-		playerMsg_label.show()
+	
 
-		var tween = create_tween()
-		tween.tween_property(playerMsg_label, "position", playerMsg_initial_position + Vector2(0, 20), 1.2)
-		tween.tween_property(playerMsg_label, "modulate", Color(0.8, 1, 0.8, 0), 1.2).set_delay(0.5)
-		tween.tween_callback(Callable(playerMsg_label, "hide"))
 
 func add_score(matched_count):
 	if is_game_over or is_level_complete:
@@ -728,10 +749,7 @@ func add_score(matched_count):
 		playerMsg_label.show()
 
 		var tween = create_tween()
-		tween.tween_property(playerMsg_label, "position", playerMsg_initial_position - Vector2(0, 30), 1.0)
-		tween.tween_property(playerMsg_label, "scale", Vector2(0.5, 0.5), 1.0)
-		tween.tween_property(playerMsg_label, "modulate", Color(1, 1, 1, 0), 1.0).set_delay(0.25)
-		tween.tween_callback(Callable(playerMsg_label, "hide"))
+		tween.tween_property(playerMsg_label, "modulate", Color(1, 1, 1, 0), 2.0).set_delay(0.25)
 
 
 func apply_gravity():
