@@ -3,8 +3,11 @@
 	{
 	  "level_number": 1,
 	  "title": "Beginner's Challenge",
-	  "grid_size": {"rows": 9, "cols": 10},
-	  "time_limit_seconds": 9,
+	  "grid_size": {
+		"rows": 8,
+		"cols": 8
+		},
+	  "time_limit_seconds": 60,
 	  "level_goals": {
 		"0": 5,
 		"1": 5,
