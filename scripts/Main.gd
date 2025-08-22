@@ -12,8 +12,8 @@ func _ready() -> void:
 
 func _on_play_label_gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		print("good")
-		get_tree().change_scene_to_file("res://scene/game.tscn")
+		print("clicked")
+		get_tree().change_scene_to_file("res://scene/game_manager.tscn")
 
 
 func _on_play_label_mouse_entered() -> void:

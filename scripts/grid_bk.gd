@@ -2,7 +2,7 @@
 
 extends Node2D
 
-class_name GameManager
+class_name GameManager_2
 
 # --- Game Board Properties ---
 # These variables control the size and layout of the game grid.
@@ -187,75 +187,23 @@ func get_default_colors() -> Array:
 	]
 	return default_colors	
 
-
-#func load_level(level_number: int) -> bool:
-	#"""Load and configure a specific level"""
-	#debug_print("Loading level " + str(level_number))
-	#print("=== LOAD LEVEL DEBUG ===")
-	#
-	## Debug info
-	#debug_print("[color=pink] LN" + str(level_number) + "\n Available levels: " + str(levels_data.keys()) + "---[/color]")
-	#debug_print("[color=pink]Level exists: " + str(levels_data.has(level_number)) + "[/color]")
-	#
-	## Check if level exists using integer key
-	#if not levels_data.has(level_number):
-		#debug_print("[color=white]ERROR: Level " + str(level_number) + " not found in levels data[/color]")
-		#debug_print("Available levels: " + str(levels_data.keys()))
-		#return false
-	#
-	#var level_data = levels_data[level_number]  # Use integer key, not string!
-	#current_level_number = level_number
-	#
-	## Validate required fields
-	#var required_fields = ["grid_size", "level_goals", "time_limit_seconds"]
-	#for field in required_fields:
-		#if not level_data.has(field):
-			#debug_print("ERROR: Level " + str(level_number) + " missing required field: " + field)
-			#return false
-	#
-	## Apply grid size
-	#var grid_size = level_data["grid_size"]
-	#if grid_size.has("rows") and grid_size.has("cols"):
-		#grid_height = int(grid_size["rows"])
-		#grid_width = int(grid_size["cols"])
-		#debug_print("Set grid size to " + str(grid_width) + "x" + str(grid_height))
-	#
-	## Apply time limit
-	#var time_limit_seconds = float(level_data["time_limit_seconds"])
-	#time_left = time_limit_seconds
-	#debug_print("Set time limit to " + str(time_limit_seconds) + " seconds")
+#func _setup_level_goals():
+	#"""Setup goals for the current level. This can be customized per level."""
+	#print("=== SETUP LEVEL GOALS DEBUG ===")
+	#print("Setting up level goals...")
 	#
 	## Clear level-specific dictionaries (NOT color_textures!)
 	#level_goals.clear()
 	#level_progress.clear()
 	#
-	## Get level colors with fallback to default colors
-	#var level_colors = []
-	#if level_data.has("colors_array"):
-		#level_colors = level_data["colors_array"]
-	#else:
-		#level_colors = get_default_colors()
-		#debug_print("Using default colors for level " + str(level_number))
+	## Example goals for different levels - you can modify these or make them configurable
+	#var goals_to_set: Dictionary = {
+		#0: 15, # Cyan tiles
+		#1: 10, # Orange tiles
+		#2: 8,  # Green tiles
+	#}
 	#
-	#print_rich("[color=yellow]level colors[/color]: ", level_colors)
-		#
-	## Set the goals in the Global singleton for other nodes to access.
-	## The level goals are converted from string keys to integer keys
-	#var goals_data = level_data["level_goals"]
-	#var goals_to_pass = {}
-	#var progress_to_pass = {}
-	#
-	#for key in goals_data.keys():
-		#var color_type = int(key)
-		#var goal_count = int(goals_data[key])
-		#goals_to_pass[color_type] = goal_count
-		#progress_to_pass[color_type] = 0
-		#level_progress[color_type] = 0  # Initialize local progress tracking
-		#debug_print("Goal for color " + str(color_type) + ": " + str(goal_count))
-	#
-	## Store goals locally for game logic
-	#level_goals = goals_to_pass.duplicate()
-	#print_rich("[color=yellow]level goals[/color]: ", level_goals)
+	#print_rich("[color=yellow]level goals[/color]: ","[color=15]goal1[/color]")
 	#
 	## DEBUG: Check color_textures before using it
 	#print("color_textures dictionary: ", color_textures)
@@ -263,40 +211,24 @@ func get_default_colors() -> Array:
 	#for key in color_textures.keys():
 		#print("  Key ", key, ": ", color_textures[key], " (size: ", color_textures[key].get_size() if color_textures[key] else "null", ")")
 	#
-	## Get tile_info from level data, but prioritize current color_textures if available
-	#var tile_info = {}
-	#if color_textures.size() > 0:
-		## Use current color_textures for the most up-to-date textures
-		#tile_info = color_textures.duplicate()
-		#debug_print("Using current color_textures for tile_info")
-	#elif level_data.has("level_tile_info") and not level_data["level_tile_info"].is_empty():
-		## Use level data tile info as fallback
-		#tile_info = level_data["level_tile_info"]
-		#debug_print("Using level_tile_info from level data")
-	#else:
-		## Last resort: empty dictionary
-		#tile_info = {}
-		#debug_print("WARNING: No tile_info available for level " + str(level_number))
+	## Pass the preloaded textures directly
+	#var tile_info_to_set = color_textures.duplicate()  # Make a copy to be safe
+	#level_goals = goals_to_set.duplicate()
 	#
-	#print("tile_info_to_set: ", tile_info)
+	#for color_type in level_goals.keys():
+		#level_progress[color_type] = 0
 	#
-	## Send goals, tile info, and colors to Global singleton
-	#Global.set_goals(goals_to_pass, tile_info, level_colors)
-	#
-	## Reset level state
 	#is_level_complete = false
-	#_level_completion_processed = false
-	#is_game_over = false
+	#print("Level goals set: ", level_goals)
+	#print("tile_info_to_set: ", tile_info_to_set)
 	#
+	## Send goals and tile info to Global singleton.
+	#Global.set_goals(level_goals, tile_info_to_set, colors)
 	##DEBUG
-	##debug_print("[color=purple]Here[/color] Goals: " + str(goals_to_pass) + " TileInfo: " + str(tile_info) + " Colors: " + str(level_colors))
-	#
-	#_generate_grid() # Make sure you have this line to create the grid
-	#
-	#print("=== LOAD LEVEL COMPLETE ===")
-	#return true
-	
-# FIXED: Remove duplicate grid generation
+	#debug_print("[color=red]Here[/color]"+ str(level_goals)+str(tile_info_to_set)+str(colors))
+	#print("=== SETUP LEVEL GOALS COMPLETE ===")
+
+
 func load_level(level_number: int) -> bool:
 	"""Load and configure a specific level"""
 	debug_print("Loading level " + str(level_number))
@@ -312,7 +244,7 @@ func load_level(level_number: int) -> bool:
 		debug_print("Available levels: " + str(levels_data.keys()))
 		return false
 	
-	var level_data = levels_data[level_number]
+	var level_data = levels_data[level_number]  # Use integer key, not string!
 	current_level_number = level_number
 	
 	# Validate required fields
@@ -349,6 +281,7 @@ func load_level(level_number: int) -> bool:
 	print_rich("[color=yellow]level colors[/color]: ", level_colors)
 		
 	# Set the goals in the Global singleton for other nodes to access.
+	# The level goals are converted from string keys to integer keys
 	var goals_data = level_data["level_goals"]
 	var goals_to_pass = {}
 	var progress_to_pass = {}
@@ -358,24 +291,35 @@ func load_level(level_number: int) -> bool:
 		var goal_count = int(goals_data[key])
 		goals_to_pass[color_type] = goal_count
 		progress_to_pass[color_type] = 0
-		level_progress[color_type] = 0
+		level_progress[color_type] = 0  # Initialize local progress tracking
 		debug_print("Goal for color " + str(color_type) + ": " + str(goal_count))
 	
 	# Store goals locally for game logic
 	level_goals = goals_to_pass.duplicate()
 	print_rich("[color=yellow]level goals[/color]: ", level_goals)
 	
+	# DEBUG: Check color_textures before using it
+	print("color_textures dictionary: ", color_textures)
+	print("color_textures size: ", color_textures.size())
+	for key in color_textures.keys():
+		print("  Key ", key, ": ", color_textures[key], " (size: ", color_textures[key].get_size() if color_textures[key] else "null", ")")
+	
 	# Get tile_info from level data, but prioritize current color_textures if available
 	var tile_info = {}
 	if color_textures.size() > 0:
+		# Use current color_textures for the most up-to-date textures
 		tile_info = color_textures.duplicate()
 		debug_print("Using current color_textures for tile_info")
 	elif level_data.has("level_tile_info") and not level_data["level_tile_info"].is_empty():
+		# Use level data tile info as fallback
 		tile_info = level_data["level_tile_info"]
 		debug_print("Using level_tile_info from level data")
 	else:
+		# Last resort: empty dictionary
 		tile_info = {}
 		debug_print("WARNING: No tile_info available for level " + str(level_number))
+	
+	print("tile_info_to_set: ", tile_info)
 	
 	# Send goals, tile info, and colors to Global singleton
 	Global.set_goals(goals_to_pass, tile_info, level_colors)
@@ -385,34 +329,24 @@ func load_level(level_number: int) -> bool:
 	_level_completion_processed = false
 	is_game_over = false
 	
-	# REMOVED: _generate_grid() call - grid generation now handled in start_level()
+	#DEBUG
+	#debug_print("[color=purple]Here[/color] Goals: " + str(goals_to_pass) + " TileInfo: " + str(tile_info) + " Colors: " + str(level_colors))
+	
+	_generate_grid() # Make sure you have this line to create the grid
 	
 	print("=== LOAD LEVEL COMPLETE ===")
 	return true
-
-
-# IMPROVED: Better grid clearing with validation
-func _clear_grid():
-	"""Clear the existing grid items with proper validation"""
-	debug_print("Clearing existing grid...")
 	
+func _clear_grid():
+	"""Clear the existing grid items"""
 	if grid_data.size() > 0:
 		for x in range(grid_data.size()):
-			if grid_data[x] is Array and grid_data[x].size() > 0:
+			if grid_data[x] is Array:
 				for y in range(grid_data[x].size()):
-					var item = grid_data[x][y]
-					if item != null and is_instance_valid(item):
-						item.queue_free()
+					if grid_data[x][y] != null and is_instance_valid(grid_data[x][y]):
+						grid_data[x][y].queue_free()
 						grid_data[x][y] = null
-	
-	# Clear the entire grid data structure
 	grid_data.clear()
-	
-	# Clear cached matches
-	_cached_matches.clear()
-	_grid_hash = ""
-	
-	debug_print("Grid cleared successfully")
 	
 func _recalculate_grid_position():
 	"""Recalculate grid position based on current grid size"""
@@ -429,48 +363,16 @@ func _recalculate_grid_position():
 	else:
 		debug_print("WARNING: Background panel not found")
 
-#func start_level(level_number: int):
-	#"""Start a specific level from scratch"""
-	#if not _game_initialized:
-		#debug_print("Game not fully initialized, deferring level start")
-		#call_deferred("start_level", level_number)
-		#return
-		#
-	#debug_print("Starting level " + str(level_number))
-	#
-	## Reset state flags
-	#_level_completion_processed = false
-	#is_processing_cascade = false
-	#_processing_bomb_effects = false
-	#
-	## Clear existing grid
-	#_clear_grid()
-	#
-	## Load level configuration
-	#if not load_level(level_number):
-		#debug_print("Failed to load level " + str(level_number) + ", using default")
-		#if not load_level(1):
-			#debug_print("CRITICAL: Could not load default level!")
-			#return
-	#
-	## Recalculate grid positioning
-	#_recalculate_grid_position()
-	#
-	## Generate new grid
-	#_generate_grid()
-	#
-	## Update goals in Global singleton (with error checking)
-	#if Global and Global.has_method("set_goals"):
-		#Global.set_goals(level_goals, color_textures, colors)
-	#else:
-		#debug_print("WARNING: Global singleton not available or missing set_goals method")
-	#
-	## Update UI
-	#_update_level_display(level_number)
-	#
-	#debug_print("Level " + str(current_level_number) + " started successfully")
-
-# FIXED: Ensure proper grid clearing and single generation
+#func _update_level_display():
+	#"""Update the level display in the UI"""
+	#if level_label != null:
+		#level_label.text = "Level " + str(current_level_number)
+#
+	#var level_label = ui_container.get_node_or_null("levelLabel")
+	#if level_label != null:
+		#level_label.text = "Loading..."  # Temporary text until level loads
+	
+	
 func start_level(level_number: int):
 	"""Start a specific level from scratch"""
 	if not _game_initialized:
@@ -485,20 +387,20 @@ func start_level(level_number: int):
 	is_processing_cascade = false
 	_processing_bomb_effects = false
 	
-	# IMPORTANT: Clear existing grid FIRST before loading new level
+	# Clear existing grid
 	_clear_grid()
 	
-	# Load level configuration (this sets up goals, colors, etc. but doesn't generate grid)
+	# Load level configuration
 	if not load_level(level_number):
 		debug_print("Failed to load level " + str(level_number) + ", using default")
 		if not load_level(1):
 			debug_print("CRITICAL: Could not load default level!")
 			return
 	
-	# Recalculate grid positioning based on new grid size
+	# Recalculate grid positioning
 	_recalculate_grid_position()
 	
-	# Generate new grid ONCE after everything is set up
+	# Generate new grid
 	_generate_grid()
 	
 	# Update goals in Global singleton (with error checking)
@@ -511,6 +413,7 @@ func start_level(level_number: int):
 	_update_level_display(level_number)
 	
 	debug_print("Level " + str(current_level_number) + " started successfully")
+
 
 func advance_to_next_level():
 	"""Progress to the next level"""
@@ -539,52 +442,15 @@ func _show_game_complete_message():
 		playerMsg_label.modulate = Color(1, 1, 0, 1)
 		playerMsg_label.scale = Vector2(1.2, 1.2)
 
+
+
+
+
+
 @onready var gm_node = get_node_or_null("res://scene/game_manager.tscn") 
 
-# --- Core Functions ---
-#func _ready():
-	#debug_print("--- Game Started ---")
-	#randomize()
-	#color_textures = {}
-	#
-	## Load levels data first
-	#load_levels_data()
-	#
-	## Setup UI references
-	#setup_ui_references()
-	#
-	## Create the textures and wait for completion
-	#await _create_color_textures_safe()
-	#
-	## Mark as initialized
-	#_game_initialized = true
-	#
-	## Start with level 1 (deferred to ensure everything is ready)
-	#call_deferred("start_level", 1)
-	##_setup_level_goals() 
-#
-#
-	#next_level_btn = get_node_or_null("../../../MarginContainer/VBoxContainer/NextLevelButton") #l("../../../UI/VBoxContainer/NextLevelButton")
-	#restart_level_btn = get_node_or_null("../../../MarginContainer/VBoxContainer/RestartButton")
-#
-#
-	#if gm_node != null:
-		## Correct: Connect to the custom signal on the grid_node
-		#gm_node.next_level_requested.connect(_on_next_level_button_pressed)
-		#gm_node.restart_level_requested.connect(_on_restart_level_button_pressed)
-		#
-#
-	#if next_level_btn != null:
-		## Connect the button's "pressed" signal to a function in this script.
-		#next_level_btn.pressed.connect(_on_next_level_button_pressed)
-		#next_level_btn.hide()
-		#
-	#if restart_level_btn != null:
-		## Connect the button's "pressed" signal to a function in this script.
-		#restart_level_btn.pressed.connect(_on_restart_level_button_pressed)
-		#restart_level_btn.hide()
 
-# Fixed sections of grid.gd - Grid Creation Issue
+
 
 # --- Core Functions ---
 func _ready():
@@ -606,19 +472,26 @@ func _ready():
 	
 	# Start with level 1 (deferred to ensure everything is ready)
 	call_deferred("start_level", 1)
+	#_setup_level_goals() 
 
-	next_level_btn = get_node_or_null("../../../MarginContainer/VBoxContainer/NextLevelButton")
+
+	next_level_btn = get_node_or_null("../../../MarginContainer/VBoxContainer/NextLevelButton") #l("../../../UI/VBoxContainer/NextLevelButton")
 	restart_level_btn = get_node_or_null("../../../MarginContainer/VBoxContainer/RestartButton")
 
+
 	if gm_node != null:
+		# Correct: Connect to the custom signal on the grid_node
 		gm_node.next_level_requested.connect(_on_next_level_button_pressed)
 		gm_node.restart_level_requested.connect(_on_restart_level_button_pressed)
 		
+
 	if next_level_btn != null:
+		# Connect the button's "pressed" signal to a function in this script.
 		next_level_btn.pressed.connect(_on_next_level_button_pressed)
 		next_level_btn.hide()
 		
 	if restart_level_btn != null:
+		# Connect the button's "pressed" signal to a function in this script.
 		restart_level_btn.pressed.connect(_on_restart_level_button_pressed)
 		restart_level_btn.hide()
 
@@ -675,69 +548,6 @@ func _update_level_display(level_number: int):
 
 
 
-#func _create_color_textures_safe():
-	#"""Create colored textures safely with proper cleanup"""
-	#debug_print("=== TEXTURE CREATION DEBUG ===")
-	#
-	#color_textures = {}
-	#
-	#var item_instance = draggable_item_scene.instantiate()
-	#var sprite = item_instance.get_node("Sprite2D")
-	#if sprite == null:
-		#debug_print("ERROR: Could not get Sprite2D from draggable item scene")
-		#item_instance.queue_free()
-		#return
-		#
-	#var base_texture = sprite.texture
-	#if base_texture == null:
-		#debug_print("ERROR: Base texture is null")
-		#item_instance.queue_free()
-		#return
-	#
-	#debug_print("Base texture size: " + str(base_texture.get_size()))
-	#debug_print("Colors array: " + str(colors))
-	#
-	#for i in range(colors.size()):
-		#debug_print("Creating texture for color " + str(i) + ": " + str(colors[i]))
-		#
-		#var viewport = SubViewport.new()
-		#viewport.size = base_texture.get_size()
-		#viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-		#
-		#var colored_sprite = Sprite2D.new()
-		#colored_sprite.texture = base_texture
-		#colored_sprite.modulate = colors[i]
-		#viewport.add_child(colored_sprite)
-		#
-		#add_child(viewport)
-		#
-		## Wait for rendering
-		#await get_tree().process_frame
-		#await get_tree().process_frame
-		#
-		## Capture the texture BEFORE freeing viewport
-		#var viewport_texture = viewport.get_texture()
-		#if viewport_texture != null:
-			#var image = viewport_texture.get_image()
-			#if image != null:
-				#var new_texture = ImageTexture.new()
-				#new_texture.set_image(image)
-				#color_textures[i] = new_texture
-				#debug_print("Successfully created texture for color " + str(i))
-			#else:
-				#debug_print("ERROR: Could not get image from viewport texture for color " + str(i))
-		#else:
-			#debug_print("ERROR: Viewport texture is null for color " + str(i))
-		#
-		## Clean up viewport to prevent memory leak
-		#viewport.queue_free()
-	#
-	#item_instance.queue_free()
-	#debug_print("Texture creation complete. Created " + str(color_textures.size()) + " textures")
-
-# -------------------------------
-# Improved Texture Creation
-# -------------------------------
 func _create_color_textures_safe():
 	"""Create colored textures safely with proper cleanup"""
 	debug_print("=== TEXTURE CREATION DEBUG ===")
@@ -799,6 +609,8 @@ func _create_color_textures_safe():
 	debug_print("Texture creation complete. Created " + str(color_textures.size()) + " textures")
 
 
+
+
 func _process(delta):
 	if not _game_initialized:
 		return
@@ -818,102 +630,36 @@ func _process(delta):
 	
 	_update_goal_display()
 
-# --- Safety Functions ---
-func _is_grid_ready() -> bool:
-	return grid_data.size() == grid_width and (grid_data.size() == 0 or grid_data[0].size() == grid_height)
-
-func _safe_get_grid_item(x: int, y: int):
-	if not _is_grid_ready() or not _is_inside_grid(x, y):
-		return null
-	return grid_data[x][y]
-
-func _safe_set_grid_item(x: int, y: int, item):
-	if not _is_grid_ready() or not _is_inside_grid(x, y):
-		return false
-	grid_data[x][y] = item
-	return true
-
-
-#func _generate_grid():
-	#debug_print("Generating grid...")
-	#grid_data.clear()
-	#grid_data.resize(grid_width)
-	#
-	#for x in range(grid_width):
-		#grid_data[x] = []
-		#grid_data[x].resize(grid_height)
-		#for y in range(grid_height):
-			#var item_type = _get_random_item_type(x, y)
-			#var item_instance = _create_item(item_type, x, y)
-			#grid_data[x][y] = item_instance
-	#
-	#debug_print("Grid generation complete.")
-
-# IMPROVED: Grid generation with better error handling
 func _generate_grid():
-	"""Generate the game grid with proper initialization"""
-	debug_print("Generating grid " + str(grid_width) + "x" + str(grid_height) + "...")
-	
-	# Ensure grid_data is properly initialized
-	grid_data.clear()
+	print("Generating grid...")
 	grid_data.resize(grid_width)
-	
 	for x in range(grid_width):
 		grid_data[x] = []
-		grid_data[x].resize(grid_height)
-		
 		for y in range(grid_height):
-			# Initialize to null first
-			grid_data[x][y] = null
-			
-			# Create the item
 			var item_type = _get_random_item_type(x, y)
 			var item_instance = _create_item(item_type, x, y)
-			
-			if item_instance != null:
-				grid_data[x][y] = item_instance
-			else:
-				debug_print("ERROR: Failed to create item at (" + str(x) + "," + str(y) + ")")
-	
-	debug_print("Grid generation complete with " + str(grid_width * grid_height) + " cells")
+			grid_data[x].append(item_instance)
+	print("Grid generation complete.")
 
 func _get_random_item_type(x, y):
 	# Ensures no immediate matches are created on the initial grid generation.
 	var possible_types = range(colors.size())
-	
 	if x >= 2:
-		var item1 = _safe_get_grid_item(x-1, y)
-		var item2 = _safe_get_grid_item(x-2, y)
-		if item1 != null and item2 != null:
-			var t1 = _get_base_type(item1.item_type)
-			var t2 = _get_base_type(item2.item_type)
-			if t1 == t2 and possible_types.has(t1):
+		var t1 = _get_base_type(grid_data[x-1][y].item_type)
+		var t2 = _get_base_type(grid_data[x-2][y].item_type)
+		if t1 == t2:
+			if possible_types.has(t1):
 				possible_types.erase(t1)
-	
 	if y >= 2:
-		var item1 = _safe_get_grid_item(x, y-1)
-		var item2 = _safe_get_grid_item(x, y-2)
-		if item1 != null and item2 != null:
-			var t1 = _get_base_type(item1.item_type)
-			var t2 = _get_base_type(item2.item_type)
-			if t1 == t2 and possible_types.has(t1):
+		var t1 = _get_base_type(grid_data[x][y-1].item_type)
+		var t2 = _get_base_type(grid_data[x][y-2].item_type)
+		if t1 == t2:
+			if possible_types.has(t1):
 				possible_types.erase(t1)
-	
-	if possible_types.size() == 0:
-		possible_types = range(colors.size())
-	
 	return possible_types[randi() % possible_types.size()]
 
 func _create_item(item_type, x, y, is_bomb = false):
 	# Creates a new item instance and places it on the grid.
-	
-	debug_print("Creating item at (" + str(x) + "," + str(y) + ") - Type: " + str(item_type))
-	
-	# Check if there's already an item at this position
-	var existing_item = _safe_get_grid_item(x, y)
-	if existing_item != null:
-		debug_print("WARNING: Item already exists at (" + str(x) + "," + str(y) + ")!")
-		
 	var item_instance = draggable_item_scene.instantiate()
 
 	if is_bomb:
@@ -925,19 +671,12 @@ func _create_item(item_type, x, y, is_bomb = false):
 	item_instance.grid_y = y
 
 	var sprite_instance = item_instance.get_node("Sprite2D")
-	if sprite_instance == null:
-		debug_print("ERROR: Sprite2D not found in draggable item!")
-		return null
 
 	var new_material = sprite_instance.material.duplicate()
 	sprite_instance.material = new_material
 
-	var base_type = _get_base_type(item_instance.item_type)
-	if base_type < colors.size():
-		var item_color = colors[base_type]
-		new_material.set_shader_parameter("base_color", item_color)
-	else:
-		debug_print("WARNING: Invalid color type: " + str(base_type))
+	var item_color = colors[_get_base_type(item_instance.item_type)]
+	new_material.set_shader_parameter("base_color", item_color)
 
 	if not _is_powerup_bomb(item_instance.item_type):
 		new_material.set_shader_parameter("pulse_strength", 0.0)
@@ -959,24 +698,17 @@ func _create_item(item_type, x, y, is_bomb = false):
 		x * cell_size + cell_size / 2 + extra_offset_x,
 		y * cell_size + cell_size / 2 + extra_offset_y
 	)
-	
-	# Connect signal with error checking
-	if item_instance.has_signal("clicked"):
-		item_instance.clicked.connect(_on_item_clicked)
-	else:
-		debug_print("WARNING: DraggableItem missing 'clicked' signal")
-	
+	item_instance.clicked.connect(_on_item_clicked)
 	add_child(item_instance)
 	return item_instance
 
-
 func _input(event):
 	# Handles user input for dragging and dropping items.
-	if is_processing_cascade or not _game_initialized:
+	if is_processing_cascade:
 		return
 		
 	if event is InputEventMouseMotion and dragging:
-		if dragged_item and is_instance_valid(dragged_item):
+		if dragged_item:
 			dragged_item.position = to_local(event.position) + drag_offset
 	elif event is InputEventMouseButton and not event.pressed and dragging:
 		end_drag(to_local(event.position))
@@ -984,14 +716,11 @@ func _input(event):
 		end_drag(to_local(event.position))
 
 func _on_item_clicked(item, click_pos: Vector2):
-	if is_processing_cascade or not _game_initialized:
+	if is_processing_cascade:
 		return
 	start_drag(item, click_pos)
 
 func start_drag(item, pos):
-	if item == null or not is_instance_valid(item):
-		return
-		
 	dragging = true
 	dragged_item = item
 	drag_start_pos = item.position
@@ -1000,64 +729,49 @@ func start_drag(item, pos):
 	var grid_coords = _get_grid_coords_from_position(dragged_item.position)
 	start_x = grid_coords.x
 	start_y = grid_coords.y
-	debug_print("Starting drag at grid coords: " + str(start_x) + ", " + str(start_y))
+	print("Starting drag at grid coords: ", start_x, ", ", start_y)
 
 func end_drag(pos):
 	dragging = false
-	if not dragged_item or not is_instance_valid(dragged_item):
-		dragged_item = null
+	if not dragged_item:
 		return
 
 	dragged_item.z_index = 0
 	var end_coords = _get_grid_coords_from_position(pos)
-	debug_print("Ending drag at grid coords: " + str(end_coords.x) + ", " + str(end_coords.y))
+	print("Ending drag at grid coords: ", end_coords.x, ", ", end_coords.y)
 
 	if _is_inside_grid(end_coords.x, end_coords.y):
-		target_item = _safe_get_grid_item(end_coords.x, end_coords.y)
-		if target_item != null and target_item != dragged_item and is_instance_valid(target_item):
+		target_item = grid_data[end_coords.x][end_coords.y]
+		if target_item != null and target_item != dragged_item:
 			var dx = abs(start_x - end_coords.x)
 			var dy = abs(start_y - end_coords.y)
 			if (dx == 1 and dy == 0) or (dx == 0 and dy == 1) or (dx == 1 and dy == 1):
 				is_processing_cascade = true
-				await _handle_swap_attempt(dragged_item, target_item, start_x, start_y, end_coords.x, end_coords.y)
+				attempt_swap(dragged_item, target_item, start_x, start_y, end_coords.x, end_coords.y)
+				await get_tree().create_timer(0.2).timeout
+
+				print("Checking for initial match...")
+				var initial_match_found = await check_for_matches()
+				print("Initial match found: ", initial_match_found)
+				if initial_match_found:
+					print("Initial match found, starting cascade.")
+					await _handle_cascade()
+				else:
+					print("No initial match found, swapping back.")
+					attempt_swap(dragged_item, target_item, end_coords.x, end_coords.y, start_x, start_y)
 				is_processing_cascade = false
 			else:
-				debug_print("Invalid swap, resetting position.")
+				print("Invalid swap, resetting position.")
 				reset_item_position(dragged_item, start_x, start_y)
 		else:
-			debug_print("Target item is invalid, resetting position.")
+			print("Target item is invalid, resetting position.")
 			reset_item_position(dragged_item, start_x, start_y)
 	else:
-		debug_print("Dropped outside grid, resetting position.")
+		print("Dropped outside grid, resetting position.")
 		reset_item_position(dragged_item, start_x, start_y)
 
 	dragged_item = null
 	target_item = null
-
-func _handle_swap_attempt(item1, item2, x1, y1, x2, y2):
-	"""Handle the swap attempt with proper error checking and timeouts"""
-	attempt_swap(item1, item2, x1, y1, x2, y2)
-	await get_tree().create_timer(0.2).timeout
-
-	debug_print("Checking for initial match...")
-	
-	# Add timeout to prevent hanging
-	var timeout_timer = get_tree().create_timer(ASYNC_TIMEOUT)
-	var initial_match_found = await check_for_matches()
-	
-	if timeout_timer.time_left <= 0:
-		debug_print("WARNING: Match check timed out!")
-		attempt_swap(item1, item2, x2, y2, x1, y1) # Swap back
-		return
-	
-	debug_print("Initial match found: " + str(initial_match_found))
-	if initial_match_found:
-		debug_print("Initial match found, starting cascade.")
-		await _handle_cascade()
-	else:
-		debug_print("No initial match found, swapping back.")
-		attempt_swap(item1, item2, x2, y2, x1, y1)
-
 
 func _get_grid_coords_from_position(pos: Vector2) -> Vector2:
 	# Calculates the nearest grid coordinates for a given screen position.
@@ -1077,62 +791,26 @@ func _get_grid_coords_from_position(pos: Vector2) -> Vector2:
 func _is_inside_grid(x, y):
 	return x >= 0 and x < grid_width and y >= 0 and y < grid_height
 
-#func attempt_swap(item1, item2, x1, y1, x2, y2):
-	## Swaps two items on the grid and animates their movement.
-	#print("Attempting to swap items at (", x1, ",", y1, ") and (", x2, ",", y2, ")")
-	#var pos1 = _get_cell_center(x1, y1)
-	#var pos2 = _get_cell_center(x2, y2)
-#
-	#grid_data[x1][y1] = item2
-	#grid_data[x2][y2] = item1
-#
-	#item1.grid_x = x2
-	#item1.grid_y = y2
-	#item2.grid_x = x1
-	#item2.grid_y = y1
-#
-	#create_tween().tween_property(item1, "position", pos2, 0.15)
-	#create_tween().tween_property(item2, "position", pos1, 0.15)
-	#print("Swap animation started.")
-
 func attempt_swap(item1, item2, x1, y1, x2, y2):
 	# Swaps two items on the grid and animates their movement.
-	if not item1 or not item2 or not is_instance_valid(item1) or not is_instance_valid(item2):
-		debug_print("ERROR: Invalid items for swap")
-		return
-		
-	debug_print("Attempting to swap items at (" + str(x1) + "," + str(y1) + ") and (" + str(x2) + "," + str(y2) + ")")
+	print("Attempting to swap items at (", x1, ",", y1, ") and (", x2, ",", y2, ")")
 	var pos1 = _get_cell_center(x1, y1)
 	var pos2 = _get_cell_center(x2, y2)
 
-	_safe_set_grid_item(x1, y1, item2)
-	_safe_set_grid_item(x2, y2, item1)
+	grid_data[x1][y1] = item2
+	grid_data[x2][y2] = item1
 
-	if item1.has_method("set_grid_position"):
-		item1.set_grid_position(x2, y2)
-	else:
-		item1.grid_x = x2
-		item1.grid_y = y2
-		
-	if item2.has_method("set_grid_position"):
-		item2.set_grid_position(x1, y1)
-	else:
-		item2.grid_x = x1
-		item2.grid_y = y1
-
-	# Clear cached matches when grid changes
-	_cached_matches.clear()
-	_grid_hash = ""
+	item1.grid_x = x2
+	item1.grid_y = y2
+	item2.grid_x = x1
+	item2.grid_y = y1
 
 	create_tween().tween_property(item1, "position", pos2, 0.15)
 	create_tween().tween_property(item2, "position", pos1, 0.15)
-	debug_print("Swap animation started.")
-
+	print("Swap animation started.")
 
 func reset_item_position(item, grid_x, grid_y):
-	if not item or not is_instance_valid(item):
-		return
-	debug_print("Resetting item position for item at (" + str(grid_x) + "," + str(grid_y) + ")")
+	print("Resetting item position for item at (", grid_x, ",", grid_y, ")")
 	item.position = _get_cell_center(grid_x, grid_y)
 
 func _get_cell_center(x, y):
@@ -1262,6 +940,10 @@ func level_complete():
 			
 		if restart_level_btn != null:
 			restart_level_btn.show()
+
+
+
+		
 		
 
 func game_over(completion_text = null):
@@ -1285,73 +967,30 @@ func game_over(completion_text = null):
 # -------------------------------
 # Match Detection and Gameplay Logic
 # -------------------------------
-
-func _calculate_grid_hash() -> String:
-	"""Calculate a hash of the current grid state for caching"""
-	var hash_data = ""
-	for x in range(grid_width):
-		for y in range(grid_height):
-			var item = _safe_get_grid_item(x, y)
-			if item != null:
-				hash_data += str(item.item_type) + ","
-			else:
-				hash_data += "null,"
-	return hash_data
-
 func _handle_cascade():
-	debug_print("--- Starting Cascade ---")
+	print("--- Starting Cascade ---")
 	var cascade_round = 0
 	
-	debug_print("Post-match cleanup: Applying gravity and refilling.")
+	print("Post-match cleanup: Applying gravity and refilling.")
 	await apply_gravity()
 	await refill_grid()
 	
 	var matches_found_in_round = true
-	while matches_found_in_round and cascade_round < MAX_CASCADE_ROUNDS:
+	while matches_found_in_round:
 		cascade_round += 1
-		debug_print("Cascade Round " + str(cascade_round) + ": Checking for matches.")
-		
-		# Add timeout protection
-		var timeout_timer = get_tree().create_timer(ASYNC_TIMEOUT)
+		print("Cascade Round ", cascade_round, ": Checking for matches.")
 		matches_found_in_round = await check_for_matches()
-		
-		if timeout_timer.time_left <= 0:
-			debug_print("WARNING: Cascade timed out at round " + str(cascade_round))
-			break
-		
 		if matches_found_in_round:
-			debug_print("Cascade Round " + str(cascade_round) + ": Matches found. Applying gravity and refilling.")
+			print("Cascade Round ", cascade_round, ": Matches found. Applying gravity and refilling.")
 			await apply_gravity()
 			await refill_grid()
 		else:
-			debug_print("Cascade Round " + str(cascade_round) + ": No more matches found. Ending cascade.")
+			print("Cascade Round ", cascade_round, ": No more matches found. Ending cascade.")
 			break
-	
-	if cascade_round >= MAX_CASCADE_ROUNDS:
-		debug_print("WARNING: Maximum cascade rounds reached!")
-	
-	debug_print("--- Cascade Complete ---")
-
+	print("--- Cascade Complete ---")
 
 func check_for_matches() -> bool:
-	debug_print("Checking for matches...")
-	
-	# Use caching for performance
-	var current_hash = _calculate_grid_hash()
-	if current_hash == _grid_hash and _cached_matches.has(current_hash):
-		debug_print("Using cached match result")
-		return _cached_matches[current_hash]
-	
-	var result = await _perform_match_check()
-	
-	# Cache the result
-	_grid_hash = current_hash
-	_cached_matches[current_hash] = result
-	
-	return result
-
-func _perform_match_check() -> bool:
-	"""Perform the actual match checking logic"""
+	print("Checking for matches...")
 	var to_remove = {}
 	var new_bombs_to_create = {}
 
@@ -1361,10 +1000,7 @@ func _perform_match_check() -> bool:
 	for y in range(grid_height):
 		var current_run_length = 1
 		for x in range(grid_width):
-			var current_item = _safe_get_grid_item(x, y)
-			var prev_item = _safe_get_grid_item(x-1, y) if x > 0 else null
-			
-			if x > 0 and current_item != null and prev_item != null and _get_base_type(current_item.item_type) == _get_base_type(prev_item.item_type):
+			if x > 0 and grid_data[x][y] and grid_data[x-1][y] and _get_base_type(grid_data[x][y].item_type) == _get_base_type(grid_data[x-1][y].item_type):
 				current_run_length += 1
 			else:
 				if current_run_length >= 3:
@@ -1377,10 +1013,7 @@ func _perform_match_check() -> bool:
 	for x in range(grid_width):
 		var current_run_length = 1
 		for y in range(grid_height):
-			var current_item = _safe_get_grid_item(x, y)
-			var prev_item = _safe_get_grid_item(x, y-1) if y > 0 else null
-			
-			if y > 0 and current_item != null and prev_item != null and _get_base_type(current_item.item_type) == _get_base_type(prev_item.item_type):
+			if y > 0 and grid_data[x][y] and grid_data[x][y-1] and _get_base_type(grid_data[x][y].item_type) == _get_base_type(grid_data[x][y-1].item_type):
 				current_run_length += 1
 			else:
 				if current_run_length >= 3:
@@ -1389,9 +1022,9 @@ func _perform_match_check() -> bool:
 		if current_run_length >= 3:
 			_process_match(x, grid_height - 1, "vertical", current_run_length, to_remove, new_bombs_to_create)
 
-	debug_print("Matches found: " + str(to_remove.size() > 0 or new_bombs_to_create.size() > 0))
+	print("Matches found:", to_remove.size() > 0 or new_bombs_to_create.size() > 0)
 	if to_remove.size() > 0 or new_bombs_to_create.size() > 0:
-		var bomb_affected_tiles = get_meta("bomb_affected_tiles", [])
+		var bomb_affected_tiles = get_meta("bomb_affected_tiles")
 		var has_bomb_effect = bomb_affected_tiles.size() > 0
 		
 		if has_bomb_effect:
@@ -1415,87 +1048,62 @@ func _perform_match_check() -> bool:
 			highlight_and_remove(to_remove.keys(), false)
 			await get_tree().create_timer(0.2).timeout
 
-		# Create new bombs
 		for pos in new_bombs_to_create:
 			var base_type = new_bombs_to_create[pos]
 			var new_item = _create_item(base_type, int(pos.x), int(pos.y), true)
-			if new_item != null:
-				_safe_set_grid_item(int(pos.x), int(pos.y), new_item)
+			grid_data[int(pos.x)][int(pos.y)] = new_item
 
 		return true
 
 	return false
 
-
 func _process_match(x: int, y: int, direction: String, length: int, to_remove: Dictionary, new_bombs_to_create: Dictionary):
 	# Processes a detected match, handles bomb creation and removal.
-	var grid_item = _safe_get_grid_item(x, y)
-	if grid_item == null:
-		debug_print("ERROR: No item at match position (" + str(x) + "," + str(y) + ")")
-		return
-		
-	debug_print("Processing a " + str(length) + " " + direction + " match at (" + str(x) + "," + str(y) + ")")
-	var base_type = _get_base_type(grid_item.item_type)
+	print("Processing a ", length, " ", direction, " match at (", x, ",", y, ")")
+	var base_type = _get_base_type(grid_data[x][y].item_type)
 	var matched_items = []
 
 	if direction == "horizontal":
 		for i in range(length):
-			var item = _safe_get_grid_item(x - i, y)
-			if item != null:
-				matched_items.append(item)
+			matched_items.append(grid_data[x - i][y])
 	else:
 		for i in range(length):
-			var item = _safe_get_grid_item(x, y - i)
-			if item != null:
-				matched_items.append(item)
+			matched_items.append(grid_data[x][y - i])
 
 	var has_bomb_in_match = false
 	for item in matched_items:
-		if item != null and _is_powerup_bomb(item.item_type):
+		if _is_powerup_bomb(item.item_type):
 			has_bomb_in_match = true
-			_trigger_powerup_effect(Vector2(item.grid_x, item.grid_y), to_remove)
+			_trigger_powerup_effect(Vector2(item.get_grid_x(), item.get_grid_y()), to_remove)
 
 	if has_bomb_in_match:
 		for item in matched_items:
-			if item != null:
-				var item_pos = Vector2(item.grid_x, item.grid_y)
-				if not to_remove.has(item_pos):
-					to_remove[item_pos] = true
+			if not to_remove.has(Vector2(item.get_grid_x(), item.get_grid_y())):
+				to_remove[Vector2(item.get_grid_x(), item.get_grid_y())] = true
 
 	elif length >= BOMB_MATCH_COUNT:
 		var merge_pos = Vector2(-1, -1)
 		for item in matched_items:
-			if item != null and item == dragged_item:
-				merge_pos = Vector2(item.grid_x, item.grid_y)
+			if item == dragged_item:
+				merge_pos = Vector2(item.get_grid_x(), item.get_grid_y())
 				break
-		if merge_pos.x == -1 and matched_items.size() > 0 and matched_items[0] != null:
-			merge_pos = Vector2(matched_items[0].grid_x, matched_items[0].grid_y)
+		if merge_pos.x == -1:
+			merge_pos = Vector2(matched_items[0].get_grid_x(), matched_items[0].get_grid_y())
 
-		if merge_pos.x != -1:
-			new_bombs_to_create[merge_pos] = base_type
+		new_bombs_to_create[merge_pos] = base_type
 
 		for item in matched_items:
-			if item != null:
-				var item_pos = Vector2(item.grid_x, item.grid_y)
-				if not to_remove.has(item_pos):
-					to_remove[item_pos] = true
+			if not to_remove.has(Vector2(item.get_grid_x(), item.get_grid_y())):
+				to_remove[Vector2(item.get_grid_x(), item.get_grid_y())] = true
 
 	else:
 		for item in matched_items:
-			if item != null:
-				var item_pos = Vector2(item.grid_x, item.grid_y)
-				if not to_remove.has(item_pos):
-					to_remove[item_pos] = true
+			if not to_remove.has(Vector2(item.get_grid_x(), item.get_grid_y())):
+				to_remove[Vector2(item.get_grid_x(), item.get_grid_y())] = true
 
 func _trigger_powerup_effect(pos: Vector2, to_remove: Dictionary):
 	# Triggers the bomb effect, adding affected tiles to the removal list.
-	if _processing_bomb_effects:
-		debug_print("WARNING: Recursive bomb effect prevented")
-		return
-		
-	_processing_bomb_effects = true
-	
-	debug_print("Triggering powerup effect at (" + str(pos.x) + "," + str(pos.y) + ")")
+	print("Triggering powerup effect at (", pos.x, ",", pos.y, ")")
 	var x = int(pos.x)
 	var y = int(pos.y)
 	var bomb_affected_tiles = []
@@ -1505,22 +1113,20 @@ func _trigger_powerup_effect(pos: Vector2, to_remove: Dictionary):
 			var new_x = x + dx
 			var new_y = y + dy
 			if _is_inside_grid(new_x, new_y):
-				var item = _safe_get_grid_item(new_x, new_y)
-				if item != null:
+				if grid_data[new_x][new_y] != null:
 					var tile_pos = Vector2(new_x, new_y)
 					to_remove[tile_pos] = true
 					bomb_affected_tiles.append(tile_pos)
 	
-	var current_bomb_tiles = get_meta("bomb_affected_tiles", [])
+	if not has_meta("bomb_affected_tiles"):
+		set_meta("bomb_affected_tiles", [])
+	var current_bomb_tiles = get_meta("bomb_affected_tiles")
 	current_bomb_tiles.append_array(bomb_affected_tiles)
 	set_meta("bomb_affected_tiles", current_bomb_tiles)
-	
-	_processing_bomb_effects = false
-
 
 func highlight_and_remove(matched_positions, is_bomb_effect = false):
 	# Animates the removal of matched items and frees them.
-	debug_print("Highlighting and removing " + str(matched_positions.size()) + " tiles.")
+	print("Highlighting and removing ", matched_positions.size(), " tiles.")
 	
 	_track_goal_progress(matched_positions)
 	add_score(matched_positions.size())
@@ -1531,44 +1137,34 @@ func highlight_and_remove(matched_positions, is_bomb_effect = false):
 		for pos in matched_positions:
 			var gx = int(pos.x)
 			var gy = int(pos.y)
-			var item = _safe_get_grid_item(gx, gy)
-			if item != null and is_instance_valid(item):
-				var sprite = item.get_node_or_null("Sprite2D")
-				if sprite != null:
-					sprite.modulate = Color(1, 1, 0)
-					tween.tween_property(item, "scale", Vector2(1.2, 1.2), 0.1)
-					tween.tween_property(item, "scale", Vector2(0, 0), 0.3).set_delay(0.1)
+			if _is_inside_grid(gx, gy) and grid_data[gx][gy]:
+				var item = grid_data[gx][gy]
+				var sprite = item.get_node("Sprite2D")
+				
+				sprite.modulate = Color(1, 1, 0)
+				tween.tween_property(item, "scale", Vector2(1.2, 1.2), 0.1)
+				tween.tween_property(item, "scale", Vector2(0, 0), 0.3).set_delay(0.1)
 
 		await tween.finished
 	else:
 		for pos in matched_positions:
 			var gx = int(pos.x)
 			var gy = int(pos.y)
-			var item = _safe_get_grid_item(gx, gy)
-			if item != null and is_instance_valid(item):
-				var sprite = item.get_node_or_null("Sprite2D")
-				if sprite != null:
-					sprite.modulate = Color(1, 1, 0)
+			if _is_inside_grid(gx, gy) and grid_data[gx][gy]:
+				grid_data[gx][gy].get_node("Sprite2D").modulate = Color(1, 1, 0)
 
 		await get_tree().create_timer(0.2).timeout
 
-	# Remove items with validation
 	for pos in matched_positions:
 		var gx = int(pos.x)
 		var gy = int(pos.y)
-		var item = _safe_get_grid_item(gx, gy)
-		if item != null and is_instance_valid(item):
-			item.queue_free()
-			_safe_set_grid_item(gx, gy, null)
-	
-	# Clear cached matches after removal
-	_cached_matches.clear()
-	_grid_hash = ""
+		if _is_inside_grid(gx, gy) and grid_data[gx][gy]:
+			grid_data[gx][gy].queue_free()
+			grid_data[gx][gy] = null
 	
 	_check_level_completion()
 	
-	debug_print("Finished removing tiles.")
-
+	print("Finished removing tiles.")
 
 func _track_goal_progress(matched_positions):
 	"""Track progress towards level goals when tiles are matched"""
@@ -1577,8 +1173,8 @@ func _track_goal_progress(matched_positions):
 	for pos in matched_positions:
 		var gx = int(pos.x)
 		var gy = int(pos.y)
-		var item = _safe_get_grid_item(gx, gy)
-		if item != null and is_instance_valid(item):
+		if _is_inside_grid(gx, gy) and grid_data[gx][gy]:
+			var item = grid_data[gx][gy]
 			var base_color_type = _get_base_type(item.item_type)
 			
 			if not color_counts.has(base_color_type):
@@ -1590,9 +1186,8 @@ func _track_goal_progress(matched_positions):
 		if level_goals.has(color_type):
 			level_progress[color_type] += color_counts[color_type]
 			# Update Global singleton progress
-			if Global and Global.has_method("update_progress"):
-				Global.update_progress(color_type, color_counts[color_type])
-			debug_print("Goal progress for color " + str(color_type) + ": " + str(level_progress[color_type]) + "/" + str(level_goals[color_type]))
+			Global.update_progress(color_type, color_counts[color_type])
+			print("Goal progress for color ", color_type, ": ", level_progress[color_type], "/", level_goals[color_type])
 	
 	var total_progress = 0
 	for count in color_counts.values():
@@ -1601,7 +1196,6 @@ func _track_goal_progress(matched_positions):
 	if total_progress > 0:
 		_show_goal_progress_message(color_counts)
 
-	
 func _show_goal_progress_message(color_counts):
 	"""Show a message about goal progress"""
 	if playerMsg_label == null:
@@ -1624,6 +1218,7 @@ func _show_goal_progress_message(color_counts):
 		playerMsg_label.scale = Vector2(0.8, 0.8)
 		playerMsg_label.modulate = Color(0.8, 1, 0.8, 1)
 		playerMsg_label.text = progress_text
+	
 
 
 func add_score(matched_count):
@@ -1644,36 +1239,10 @@ func add_score(matched_count):
 
 		var tween = create_tween()
 		tween.tween_property(playerMsg_label, "modulate", Color(1, 1, 1, 0), 2.0).set_delay(0.25)
-	#print("Applying gravity...")
-	#var tween = create_tween().set_parallel(true)
-	#var tiles_moved = false
-#
-	## Process each column from bottom to top
-	#for x in range(grid_width):
-		#var write_index = grid_height - 1
-		#
-		## Compact non-null items downward
-		#for y in range(grid_height - 1, -1, -1):
-			#if grid_data[x][y] != null:
-				#if y != write_index:
-					#var item_to_move = grid_data[x][y]
-					#grid_data[x][write_index] = item_to_move
-					#grid_data[x][y] = null
-					#
-					#item_to_move.grid_x = x
-					#item_to_move.grid_y = write_index
-					#
-					#var new_pos = _get_cell_center(x, write_index)
-					#tween.tween_property(item_to_move, "position", new_pos, 0.3)
-					#tiles_moved = true
-				#write_index -= 1
-#
-	#if tiles_moved:
-		#await tween.finished
-	#print("Finished applying gravity.")
+
 
 func apply_gravity():
-	debug_print("Applying gravity...")
+	print("Applying gravity...")
 	var tween = create_tween().set_parallel(true)
 	var tiles_moved = false
 
@@ -1683,80 +1252,32 @@ func apply_gravity():
 		
 		# Compact non-null items downward
 		for y in range(grid_height - 1, -1, -1):
-			var item = _safe_get_grid_item(x, y)
-			if item != null and is_instance_valid(item):
+			if grid_data[x][y] != null:
 				if y != write_index:
-					_safe_set_grid_item(x, write_index, item)
-					_safe_set_grid_item(x, y, null)
+					var item_to_move = grid_data[x][y]
+					grid_data[x][write_index] = item_to_move
+					grid_data[x][y] = null
 					
-					if item.has_method("set_grid_position"):
-						item.set_grid_position(x, write_index)
-					else:
-						item.grid_x = x
-						item.grid_y = write_index
+					item_to_move.grid_x = x
+					item_to_move.grid_y = write_index
 					
 					var new_pos = _get_cell_center(x, write_index)
-					tween.tween_property(item, "position", new_pos, 0.3)
+					tween.tween_property(item_to_move, "position", new_pos, 0.3)
 					tiles_moved = true
 				write_index -= 1
-	
-	# Clear cached matches after gravity
-	_cached_matches.clear()
-	_grid_hash = ""
 
 	if tiles_moved:
 		await tween.finished
-	debug_print("Finished applying gravity.")
-
-	#print("Refilling grid...")
-	#var items_to_create = []
-	#
-	#for x in range(grid_width):
-		#var empty_count = 0
-		#for y in range(grid_height):
-			#if grid_data[x][y] == null:
-				#empty_count += 1
-				#items_to_create.append({
-					#"x": x,
-					#"y": y,
-					#"drop_from": y - empty_count
-				#})
-	#
-	#if items_to_create.size() == 0:
-		#print("No empty cells to refill.")
-		#return
-	#
-	#var tween = create_tween().set_parallel(true)
-	#
-	#for item_info in items_to_create:
-		#var x = item_info.x
-		#var y = item_info.y
-		#var drop_from = item_info.drop_from
-		#
-		#var item_type = _get_safe_refill_type(x, y)
-		#var item_instance = _create_item(item_type, x, y)
-		#grid_data[x][y] = item_instance
-		#
-		#var start_pos = _get_cell_center(x, drop_from)
-		#item_instance.position = start_pos
-		#
-		#var end_pos = _get_cell_center(x, y)
-		#var drop_distance = y - drop_from
-		#var drop_time = 0.1 + (drop_distance * 0.05)
-		#
-		#tween.tween_property(item_instance, "position", end_pos, drop_time)
-	#
-	#await tween.finished
-	#print("Finished refilling grid.")
+	print("Finished applying gravity.")
 
 func refill_grid():
-	debug_print("Refilling grid...")
+	print("Refilling grid...")
 	var items_to_create = []
 	
 	for x in range(grid_width):
 		var empty_count = 0
 		for y in range(grid_height):
-			if _safe_get_grid_item(x, y) == null:
+			if grid_data[x][y] == null:
 				empty_count += 1
 				items_to_create.append({
 					"x": x,
@@ -1765,7 +1286,7 @@ func refill_grid():
 				})
 	
 	if items_to_create.size() == 0:
-		debug_print("No empty cells to refill.")
+		print("No empty cells to refill.")
 		return
 	
 	var tween = create_tween().set_parallel(true)
@@ -1777,52 +1298,19 @@ func refill_grid():
 		
 		var item_type = _get_safe_refill_type(x, y)
 		var item_instance = _create_item(item_type, x, y)
-		if item_instance != null:
-			_safe_set_grid_item(x, y, item_instance)
-			
-			var start_pos = _get_cell_center(x, drop_from)
-			item_instance.position = start_pos
-			
-			var end_pos = _get_cell_center(x, y)
-			var drop_distance = y - drop_from
-			var drop_time = 0.1 + (drop_distance * 0.05)
-			
-			tween.tween_property(item_instance, "position", end_pos, drop_time)
-	
-	# Clear cached matches after refill
-	_cached_matches.clear()
-	_grid_hash = ""
+		grid_data[x][y] = item_instance
+		
+		var start_pos = _get_cell_center(x, drop_from)
+		item_instance.position = start_pos
+		
+		var end_pos = _get_cell_center(x, y)
+		var drop_distance = y - drop_from
+		var drop_time = 0.1 + (drop_distance * 0.05)
+		
+		tween.tween_property(item_instance, "position", end_pos, drop_time)
 	
 	await tween.finished
-	debug_print("Finished refilling grid.")
-
-	#var possible_types = range(colors.size())
-	#var attempts = 0
-	#var max_attempts = 10
-	#
-	#while attempts < max_attempts:
-		#var test_type = possible_types[randi() % possible_types.size()]
-		#
-		#var horizontal_safe = true
-		#if x >= 2 and grid_data[x-1][y] != null and grid_data[x-2][y] != null:
-			#var t1 = _get_base_type(grid_data[x-1][y].item_type)
-			#var t2 = _get_base_type(grid_data[x-2][y].item_type)
-			#if t1 == t2 and t1 == test_type:
-				#horizontal_safe = false
-		#
-		#var vertical_safe = true
-		#if y >= 2 and grid_data[x][y-1] != null and grid_data[x][y-2] != null:
-			#var t1 = _get_base_type(grid_data[x][y-1].item_type)
-			#var t2 = _get_base_type(grid_data[x][y-2].item_type)
-			#if t1 == t2 and t1 == test_type:
-				#vertical_safe = false
-		#
-		#if horizontal_safe and vertical_safe:
-			#return test_type
-		#
-		#attempts += 1
-	#
-	#return randi() % colors.size()
+	print("Finished refilling grid.")
 
 func _get_safe_refill_type(x: int, y: int) -> int:
 	var possible_types = range(colors.size())
@@ -1833,29 +1321,22 @@ func _get_safe_refill_type(x: int, y: int) -> int:
 		var test_type = possible_types[randi() % possible_types.size()]
 		
 		var horizontal_safe = true
-		if x >= 2:
-			var item1 = _safe_get_grid_item(x-1, y)
-			var item2 = _safe_get_grid_item(x-2, y)
-			if item1 != null and item2 != null:
-				var t1 = _get_base_type(item1.item_type)
-				var t2 = _get_base_type(item2.item_type)
-				if t1 == t2 and t1 == test_type:
-					horizontal_safe = false
+		if x >= 2 and grid_data[x-1][y] != null and grid_data[x-2][y] != null:
+			var t1 = _get_base_type(grid_data[x-1][y].item_type)
+			var t2 = _get_base_type(grid_data[x-2][y].item_type)
+			if t1 == t2 and t1 == test_type:
+				horizontal_safe = false
 		
 		var vertical_safe = true
-		if y >= 2:
-			var item1 = _safe_get_grid_item(x, y-1)
-			var item2 = _safe_get_grid_item(x, y-2)
-			if item1 != null and item2 != null:
-				var t1 = _get_base_type(item1.item_type)
-				var t2 = _get_base_type(item2.item_type)
-				if t1 == t2 and t1 == test_type:
-					vertical_safe = false
+		if y >= 2 and grid_data[x][y-1] != null and grid_data[x][y-2] != null:
+			var t1 = _get_base_type(grid_data[x][y-1].item_type)
+			var t2 = _get_base_type(grid_data[x][y-2].item_type)
+			if t1 == t2 and t1 == test_type:
+				vertical_safe = false
 		
 		if horizontal_safe and vertical_safe:
 			return test_type
 		
 		attempts += 1
 	
-	# Fallback if no safe type found
 	return randi() % colors.size()

@@ -1,0 +1,142 @@
+{
+  "levels": [
+	{
+	  "level_number": 1,
+	  "title": "Beginner's Challenge",
+	  "grid_size": {"rows": 9, "cols": 10},
+	  "time_limit_seconds": 9,
+	  "level_goals": {
+		"0": 5,
+		"1": 5,
+		"2": 5
+	  },
+	  "colors_array": ["#00FFFF", "#FFA500", "#00FF00"]
+	},
+	{
+	  "level_number": 2,
+	  "grid_size": {
+		"rows": 5,
+		"cols": 6
+	  },
+	  "level_goals": {
+		"0": 12,
+		"1": 10,
+		"2": 8
+	  },
+	  "time_limit_seconds": 50,
+	  "description": "A bit more challenging - more tiles to match!"
+	},
+	{
+	  "level_number": 3,
+	  "grid_size": {
+		"rows": 6,
+		"cols": 6
+	  },
+	  "level_goals": {
+		"0": 15,
+		"1": 12,
+		"2": 10
+	  },
+	  "time_limit_seconds": 60,
+	  "description": "Bigger grid, more goals!"
+	},
+	{
+	  "level_number": 4,
+	  "grid_size": {
+		"rows": 6,
+		"cols": 6
+	  },
+	  "level_goals": {
+		"0": 18,
+		"1": 15,
+		"2": 12
+	  },
+	  "time_limit_seconds": 55,
+	  "description": "Same grid size but higher targets and less time!"
+	},
+	{
+	  "level_number": 5,
+	  "grid_size": {
+		"rows": 6,
+		"cols": 7
+	  },
+	  "level_goals": {
+		"0": 20,
+		"1": 18,
+		"2": 15
+	  },
+	  "time_limit_seconds": 65,
+	  "description": "Wider grid with substantial tile targets."
+	},
+	{
+	  "level_number": 6,
+	  "grid_size": {
+		"rows": 7,
+		"cols": 6
+	  },
+	  "level_goals": {
+		"0": 22,
+		"1": 20,
+		"2": 18
+	  },
+	  "time_limit_seconds": 60,
+	  "description": "Taller grid - use gravity to your advantage!"
+	},
+	{
+	  "level_number": 7,
+	  "grid_size": {
+		"rows": 7,
+		"cols": 7
+	  },
+	  "level_goals": {
+		"0": 25,
+		"1": 22,
+		"2": 20
+	  },
+	  "time_limit_seconds": 70,
+	  "description": "Big square grid with high targets!"
+	},
+	{
+	  "level_number": 8,
+	  "grid_size": {
+		"rows": 7,
+		"cols": 7
+	  },
+	  "level_goals": {
+		"0": 28,
+		"1": 25,
+		"2": 22
+	  },
+	  "time_limit_seconds": 65,
+	  "description": "Same size but even higher goals and tighter time!"
+	},
+	{
+	  "level_number": 9,
+	  "grid_size": {
+		"rows": 8,
+		"cols": 7
+	  },
+	  "level_goals": {
+		"0": 30,
+		"1": 28,
+		"2": 25
+	  },
+	  "time_limit_seconds": 75,
+	  "description": "Massive grid with serious challenges!"
+	},
+	{
+	  "level_number": 10,
+	  "grid_size": {
+		"rows": 8,
+		"cols": 8
+	  },
+	  "level_goals": {
+		"0": 35,
+		"1": 32,
+		"2": 30
+	  },
+	  "time_limit_seconds": 80,
+	  "description": "The ultimate challenge - can you master the biggest grid?"
+	}
+  ]
+}

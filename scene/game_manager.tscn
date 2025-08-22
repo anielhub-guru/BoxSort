@@ -1,0 +1,147 @@
+[gd_scene load_steps=10 format=3 uid="uid://tlj3q4jkmqyt"]
+
+[ext_resource type="FontFile" uid="uid://bqsgikbx1kjqx" path="res://font/Syne-Bold.ttf" id="1_hy1te"]
+[ext_resource type="Script" uid="uid://0x05bpcfkbif" path="res://scripts/game_manager.gd" id="1_yyxvu"]
+[ext_resource type="PackedScene" uid="uid://dxrm6xngl0n77" path="res://scene/level_goal_display.tscn" id="2_yyxvu"]
+[ext_resource type="PackedScene" uid="uid://pg3fayeowjo" path="res://scene/grid.tscn" id="3_05tyy"]
+[ext_resource type="Texture2D" uid="uid://bgnmqteoydy1h" path="res://images/treeplain_bg.png" id="4_fi3ik"]
+[ext_resource type="AudioStream" uid="uid://bfrxel50mjv4" path="res://audio/MKT_gameplay1.mp3" id="5_re6s4"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_c73ev"]
+font = ExtResource("1_hy1te")
+font_size = 44
+
+[sub_resource type="LabelSettings" id="LabelSettings_p1ry8"]
+font = ExtResource("1_hy1te")
+font_size = 50
+
+[sub_resource type="LabelSettings" id="LabelSettings_hy1te"]
+font = ExtResource("1_hy1te")
+font_size = 25
+
+[node name="HUD" type="CanvasLayer"]
+script = ExtResource("1_yyxvu")
+
+[node name="UI" type="MarginContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_constants/margin_left = 50
+theme_override_constants/margin_top = 50
+theme_override_constants/margin_right = 50
+theme_override_constants/margin_bottom = 50
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 0
+mouse_filter = 2
+
+[node name="playerMsg" type="Label" parent="UI/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 500
+label_settings = SubResource("LabelSettings_c73ev")
+vertical_alignment = 2
+
+[node name="padding" type="Label" parent="UI/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+label_settings = SubResource("LabelSettings_p1ry8")
+
+[node name="levelLabel" type="Label" parent="UI/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+text = "level???"
+label_settings = SubResource("LabelSettings_hy1te")
+
+[node name="Timer" type="Label" parent="UI/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 500
+text = "Time: 60"
+label_settings = SubResource("LabelSettings_c73ev")
+vertical_alignment = 2
+
+[node name="padding2" type="Label" parent="UI/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+label_settings = SubResource("LabelSettings_p1ry8")
+
+[node name="LevelGoalDisplay" parent="UI/VBoxContainer" instance=ExtResource("2_yyxvu")]
+layout_mode = 2
+
+[node name="padding3" type="Label" parent="UI/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+text = "
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"
+label_settings = SubResource("LabelSettings_p1ry8")
+
+[node name="Grid" parent="UI" instance=ExtResource("3_05tyy")]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="TextureRect" type="TextureRect" parent="."]
+z_index = -1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("4_fi3ik")
+expand_mode = 3
+
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("5_re6s4")
+volume_db = -20.0
+autoplay = true
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+theme_override_constants/margin_bottom = 300
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+size_flags_vertical = 8
+
+[node name="NextLevelButton" type="Button" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 8
+theme_override_font_sizes/font_size = 50
+text = "Next Level"
+
+[node name="RestartButton" type="Button" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 50
+text = "Restart"
+
+[connection signal="pressed" from="MarginContainer/VBoxContainer/NextLevelButton" to="." method="_on_next_level_button_pressed"]
+[connection signal="mouse_entered" from="MarginContainer/VBoxContainer/RestartButton" to="." method="_on_restart_button_mouse_entered"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/RestartButton" to="." method="_on_restart_button_pressed"]

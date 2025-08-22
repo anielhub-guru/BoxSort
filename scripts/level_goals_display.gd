@@ -10,6 +10,7 @@ var font_size = 35
 func _update_display(level_goals: Dictionary, tile_info: Dictionary, colors: Array):
 	print("Received 'goals_updated' signal with: ", level_goals)
 	print("DEBUG - tile_info contents: ", tile_info)
+	print("DEBUG - colors array: ", colors, " size: ", colors.size())
 	
 	# Clear existing goal displays
 	clear_goals_display()
@@ -24,10 +25,23 @@ func _update_display(level_goals: Dictionary, tile_info: Dictionary, colors: Arr
 		var current = progress.get(goal_type, 0)
 		var target = level_goals[goal_type]
 		var tile_resource = tile_info.get(goal_type, null)
-		var color_code = colors[goal_type]
+		
+		# Safe color access with bounds checking
+		var color_code = Color.WHITE  # Default fallback color
+		if colors.size() > 0 and goal_type < colors.size():
+			color_code = colors[goal_type]
+		elif colors.size() > 0:
+			# Use modulo to wrap around if goal_type exceeds array size
+			color_code = colors[goal_type % colors.size()]
+		else:
+			# Generate a fallback color based on goal_type if colors array is empty
+			var hue = (goal_type * 0.618033988749) # Golden ratio for nice color distribution
+			hue = hue - floor(hue)  # Keep fractional part
+			color_code = Color.from_hsv(hue, 0.8, 0.9)
+			print("Generated fallback color for goal_type ", goal_type, ": ", color_code)
 		
 		# Debug print to see what we're getting
-		print("Goal type: ", goal_type, " Tile resource: ", tile_resource)
+		print("Goal type: ", goal_type, " Tile resource: ", tile_resource, " Color: ", color_code)
 		
 		create_goal_item(goal_type, current, target, tile_resource, color_code)
 	
@@ -54,6 +68,7 @@ func create_goal_item(goal_type: int, current: int, target: int, tile_resource, 
 			var viewport_tex = tile_resource as ViewportTexture
 			print("Viewport texture path: ", viewport_tex.viewport_path)
 	print("=== END TEXTURE DEBUG ===")
+	
 	if goals_container.get_child_count() > 0:
 		var spacer = Control.new()
 		spacer.custom_minimum_size = Vector2(15, 0)  # Horizontal spacing
