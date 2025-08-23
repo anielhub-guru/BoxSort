@@ -1,6 +1,7 @@
-[gd_scene load_steps=3 format=3 uid="uid://pg3fayeowjo"]
+[gd_scene load_steps=4 format=3 uid="uid://pg3fayeowjo"]
 
 [ext_resource type="Script" uid="uid://doqp3ls5mupob" path="res://scripts/grid.gd" id="1_5xkqp"]
+[ext_resource type="AudioStream" uid="uid://bor08edhft7bs" path="res://audio/pop-91931.mp3" id="2_ctyjr"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5xkqp"]
 bg_color = Color(0.992157, 0.890196, 0.615686, 1)
@@ -12,6 +13,7 @@ corner_radius_bottom_left = 20
 [node name="CenterContainer" type="CenterContainer"]
 
 [node name="Node2D" type="Node2D" parent="."]
+y_sort_enabled = true
 script = ExtResource("1_5xkqp")
 
 [node name="Panel" type="Panel" parent="Node2D"]
@@ -21,3 +23,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_5xkqp")
+
+[node name="TileMatchAudio" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("2_ctyjr")
+volume_db = -10.0

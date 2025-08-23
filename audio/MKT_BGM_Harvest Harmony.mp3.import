@@ -12,7 +12,7 @@ dest_files=["res://.godot/imported/MKT_BGM_Harvest Harmony.mp3-c006a23edc632feaa
 
 [params]
 
-loop=false
+loop=true
 loop_offset=0
 bpm=0
 beat_count=0

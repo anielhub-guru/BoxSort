@@ -2,7 +2,7 @@
 
 extends Node2D
 
-class_name GameManager
+class_name GameManage2
 
 # --- Game Board Properties ---
 # These variables control the size and layout of the game grid.
@@ -15,10 +15,6 @@ var use_shelf_gaps = false # Flag to enable/disable visual gaps
 var padding = 60
 var next_level_btn
 var restart_level_btn
-
-
-# game audio
-@onready var tile_match_audio = $"../TileMatchAudio" 
 
 # --- Game State and Data ---
 # Stores the current state of the game board and game-related information.
@@ -548,6 +544,50 @@ func _show_game_complete_message():
 
 @onready var gm_node = get_node_or_null("res://scene/game_manager.tscn") 
 
+# --- Core Functions ---
+#func _ready():
+	#debug_print("--- Game Started ---")
+	#randomize()
+	#color_textures = {}
+	#
+	## Load levels data first
+	#load_levels_data()
+	#
+	## Setup UI references
+	#setup_ui_references()
+	#
+	## Create the textures and wait for completion
+	#await _create_color_textures_safe()
+	#
+	## Mark as initialized
+	#_game_initialized = true
+	#
+	## Start with level 1 (deferred to ensure everything is ready)
+	#call_deferred("start_level", 1)
+	##_setup_level_goals() 
+#
+#
+	#next_level_btn = get_node_or_null("../../../MarginContainer/VBoxContainer/NextLevelButton") #l("../../../UI/VBoxContainer/NextLevelButton")
+	#restart_level_btn = get_node_or_null("../../../MarginContainer/VBoxContainer/RestartButton")
+#
+#
+	#if gm_node != null:
+		## Correct: Connect to the custom signal on the grid_node
+		#gm_node.next_level_requested.connect(_on_next_level_button_pressed)
+		#gm_node.restart_level_requested.connect(_on_restart_level_button_pressed)
+		#
+#
+	#if next_level_btn != null:
+		## Connect the button's "pressed" signal to a function in this script.
+		#next_level_btn.pressed.connect(_on_next_level_button_pressed)
+		#next_level_btn.hide()
+		#
+	#if restart_level_btn != null:
+		## Connect the button's "pressed" signal to a function in this script.
+		#restart_level_btn.pressed.connect(_on_restart_level_button_pressed)
+		#restart_level_btn.hide()
+
+# Fixed sections of grid.gd - Grid Creation Issue
 
 # --- Core Functions ---
 func _ready():
@@ -618,9 +658,9 @@ func setup_ui_references():
 	if playerMsg_label != null:
 		playerMsg_initial_position = playerMsg_label.position
 		
-	#var level_label = ui_container.get_node_or_null("levelLabel")
-	#if level_label != null:
-		#level_label.text = "Loading..."  # Temporary text until level loads
+	var level_label = ui_container.get_node_or_null("levelLabel")
+	if level_label != null:
+		level_label.text = "Loading..."  # Temporary text until level loads
 
 func _update_level_display(level_number: int):
 	"""Update the level display with the current level number"""
@@ -1196,6 +1236,24 @@ func _get_grid_coords_from_position(pos: Vector2) -> Vector2:
 func _is_inside_grid(x, y):
 	return x >= 0 and x < grid_width and y >= 0 and y < grid_height
 
+#func attempt_swap(item1, item2, x1, y1, x2, y2):
+	## Swaps two items on the grid and animates their movement.
+	#print("Attempting to swap items at (", x1, ",", y1, ") and (", x2, ",", y2, ")")
+	#var pos1 = _get_cell_center(x1, y1)
+	#var pos2 = _get_cell_center(x2, y2)
+#
+	#grid_data[x1][y1] = item2
+	#grid_data[x2][y2] = item1
+#
+	#item1.grid_x = x2
+	#item1.grid_y = y2
+	#item2.grid_x = x1
+	#item2.grid_y = y1
+#
+	#create_tween().tween_property(item1, "position", pos2, 0.15)
+	#create_tween().tween_property(item2, "position", pos1, 0.15)
+	#print("Swap animation started.")
+
 func attempt_swap(item1, item2, x1, y1, x2, y2):
 	# Swaps two items on the grid and animates their movement.
 	if not item1 or not item2 or not is_instance_valid(item1) or not is_instance_valid(item2):
@@ -1399,43 +1457,6 @@ func _calculate_grid_hash() -> String:
 				hash_data += "null,"
 	return hash_data
 
-#func _handle_cascade():
-	#debug_print("--- Starting Cascade ---")
-	#var cascade_round = 0
-	#
-	#debug_print("Post-match cleanup: Applying gravity and refilling.")
-	#await apply_gravity()
-	#await refill_grid()
-	#
-	#var matches_found_in_round = true
-	#while matches_found_in_round and cascade_round < MAX_CASCADE_ROUNDS:
-		#cascade_round += 1
-		#debug_print("Cascade Round " + str(cascade_round) + ": Checking for matches.")
-		#
-		## Add timeout protection
-		#var timeout_timer = get_tree().create_timer(ASYNC_TIMEOUT)
-		#matches_found_in_round = await check_for_matches()
-		#
-		#if timeout_timer.time_left <= 0:
-			#debug_print("WARNING: Cascade timed out at round " + str(cascade_round))
-			#break
-		#
-		#if matches_found_in_round:
-			#debug_print("Cascade Round " + str(cascade_round) + ": Matches found. Applying gravity and refilling.")
-			#await apply_gravity()
-			#await refill_grid()
-		#else:
-			#debug_print("Cascade Round " + str(cascade_round) + ": No more matches found. Ending cascade.")
-			#break
-	#
-	#if cascade_round >= MAX_CASCADE_ROUNDS:
-		#debug_print("WARNING: Maximum cascade rounds reached!")
-	#
-	#debug_print("--- Cascade Complete ---")
-
-
-
-
 func _handle_cascade():
 	debug_print("--- Starting Cascade ---")
 	var cascade_round = 0
@@ -1457,7 +1478,7 @@ func _handle_cascade():
 			debug_print("WARNING: Cascade timed out at round " + str(cascade_round))
 			break
 		
-		if matches_found_in_round:			
+		if matches_found_in_round:
 			debug_print("Cascade Round " + str(cascade_round) + ": Matches found. Applying gravity and refilling.")
 			await apply_gravity()
 			await refill_grid()
@@ -1469,7 +1490,6 @@ func _handle_cascade():
 		debug_print("WARNING: Maximum cascade rounds reached!")
 	
 	debug_print("--- Cascade Complete ---")
-
 
 
 func check_for_matches() -> bool:
@@ -1931,18 +1951,6 @@ func create_powerup_item(pos: Vector2, item_data: Dictionary):
 	return new_item
 
 
-func play_match_audio(start_time: float, duration: float):
-	# Ensure the player is ready
-	if tile_match_audio.stream == null:
-		return
-	# Start playback at the specified time
-	tile_match_audio.seek(start_time)
-	tile_match_audio.play()
-	# Wait for the duration and then stop the audio
-	await get_tree().create_timer(duration).timeout
-	tile_match_audio.stop()
-
-
 #Update the highlight_and_remove function to handle new power-up creation
 #func highlight_and_remove(matched_positions, is_bomb_effect = false):
 	#debug_print("Highlighting and removing " + str(matched_positions.size()) + " tiles.")
@@ -2038,8 +2046,6 @@ func highlight_and_remove(matched_positions, is_bomb_effect = false):
 	_cached_matches.clear()
 	_grid_hash = ""
 	_check_level_completion()
-	
-	play_match_audio(0.10,1)
 	
 	debug_print("Finished removing tiles.")
 

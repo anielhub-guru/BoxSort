@@ -4,142 +4,201 @@
 	  "level_number": 1,
 	  "title": "Beginner's Challenge",
 	  "grid_size": {
-		"rows": 8,
-		"cols": 8
-		},
+		"rows": 3,
+		"cols": 3
+	  },
+	  "time_limit_seconds": 60,
+	  "level_goals": {
+		"0": 3,
+		"1": 3,
+		"2": 3
+	  },
+	  "colors_array": [
+		"#00FFFF",
+		"#FFA500",
+		"#00FF00"
+	  ],
+	  "description": "Start with a simple 3x3 grid and three distinct colors. This is an introductory level designed for new players to learn the mechanics."
+	},
+	{
+	  "level_number": 2,
+	  "title": "A Bit More Challenging",
+	  "grid_size": {
+		"rows": 4,
+		"cols": 4
+	  },
 	  "time_limit_seconds": 60,
 	  "level_goals": {
 		"0": 5,
 		"1": 5,
 		"2": 5
 	  },
-	  "colors_array": ["#00FFFF", "#FFA500", "#00FF00"]
-	},
-	{
-	  "level_number": 2,
-	  "grid_size": {
-		"rows": 5,
-		"cols": 6
-	  },
-	  "level_goals": {
-		"0": 12,
-		"1": 10,
-		"2": 8
-	  },
-	  "time_limit_seconds": 50,
-	  "description": "A bit more challenging - more tiles to match!"
+	  "colors_array": [
+		"#00FFFF",
+		"#FFA500",
+		"#00FF00"
+	  ],
+	  "description": "The grid size increases to 4x4, and you'll need to match more tiles to clear the level. The time limit remains the same to keep the pressure on."
 	},
 	{
 	  "level_number": 3,
+	  "title": "Bigger Grid, Higher Goals",
 	  "grid_size": {
-		"rows": 6,
-		"cols": 6
-	  },
-	  "level_goals": {
-		"0": 15,
-		"1": 12,
-		"2": 10
+		"rows": 5,
+		"cols": 4
 	  },
 	  "time_limit_seconds": 60,
-	  "description": "Bigger grid, more goals!"
+	  "level_goals": {
+		"0": 7,
+		"1": 7,
+		"2": 7
+	  },
+	  "colors_array": [
+		"#00FFFF",
+		"#FFA500",
+		"#00FF00"
+	  ],
+	  "description": "The grid gets taller, and the goals increase to keep the challenge steady."
 	},
 	{
 	  "level_number": 4,
+	  "title": "Tighter Time",
 	  "grid_size": {
-		"rows": 6,
-		"cols": 6
-	  },
-	  "level_goals": {
-		"0": 18,
-		"1": 15,
-		"2": 12
+		"rows": 5,
+		"cols": 5
 	  },
 	  "time_limit_seconds": 55,
-	  "description": "Same grid size but higher targets and less time!"
+	  "level_goals": {
+		"0": 9,
+		"1": 9,
+		"2": 9
+	  },
+	  "colors_array": [
+		"#00FFFF",
+		"#FFA500",
+		"#00FF00"
+	  ],
+	  "description": "The grid expands to a 5x5 square, and the time limit is reduced. You'll need to think and act faster to meet the increased tile goals."
 	},
 	{
 	  "level_number": 5,
+	  "title": "Wider Grid, More Tiles",
 	  "grid_size": {
 		"rows": 6,
-		"cols": 7
+		"cols": 5
 	  },
+	  "time_limit_seconds": 55,
 	  "level_goals": {
-		"0": 20,
-		"1": 18,
-		"2": 15
+		"0": 12,
+		"1": 12,
+		"2": 12
 	  },
-	  "time_limit_seconds": 65,
-	  "description": "Wider grid with substantial tile targets."
+	  "colors_array": [
+		"#00FFFF",
+		"#FFA500",
+		"#00FF00"
+	  ],
+	  "description": "The grid widens and the goals increase significantly, but with only three colors, you'll find more matches."
 	},
 	{
 	  "level_number": 6,
+	  "title": "Larger Goals",
+	  "grid_size": {
+		"rows": 6,
+		"cols": 6
+	  },
+	  "time_limit_seconds": 55,
+	  "level_goals": {
+		"0": 15,
+		"1": 15,
+		"2": 15
+	  },
+	  "colors_array": [
+		"#00FFFF",
+		"#FFA500",
+		"#00FF00"
+	  ],
+	  "description": "The grid expands again, and you'll need to hit higher tile goals for each color. The time limit is still tight, so focus on efficiency."
+	},
+	{
+	  "level_number": 7,
+	  "title": "The First Real Test",
 	  "grid_size": {
 		"rows": 7,
 		"cols": 6
 	  },
+	  "time_limit_seconds": 50,
 	  "level_goals": {
-		"0": 22,
+		"0": 20,
 		"1": 20,
-		"2": 18
-	  },
-	  "time_limit_seconds": 60,
-	  "description": "Taller grid - use gravity to your advantage!"
-	},
-	{
-	  "level_number": 7,
-	  "grid_size": {
-		"rows": 7,
-		"cols": 7
-	  },
-	  "level_goals": {
-		"0": 25,
-		"1": 22,
 		"2": 20
 	  },
-	  "time_limit_seconds": 70,
-	  "description": "Big square grid with high targets!"
+	  "colors_array": [
+		"#00FFFF",
+		"#FFA500",
+		"#00FF00"
+	  ],
+	  "description": "The grid gets taller and the time limit decreases. This level is designed to test your ability to make quick, strategic moves."
 	},
 	{
 	  "level_number": 8,
+	  "title": "Big Square Grid",
 	  "grid_size": {
 		"rows": 7,
 		"cols": 7
 	  },
+	  "time_limit_seconds": 50,
 	  "level_goals": {
-		"0": 28,
+		"0": 25,
 		"1": 25,
-		"2": 22
+		"2": 25
 	  },
-	  "time_limit_seconds": 65,
-	  "description": "Same size but even higher goals and tighter time!"
+	  "colors_array": [
+		"#00FFFF",
+		"#FFA500",
+		"#00FF00"
+	  ],
+	  "description": "A big square grid with a tight time limit and high goals. You will have more options to create large combos."
 	},
 	{
 	  "level_number": 9,
+	  "title": "Massive Grid, Massive Challenge",
 	  "grid_size": {
 		"rows": 8,
 		"cols": 7
 	  },
+	  "time_limit_seconds": 45,
 	  "level_goals": {
 		"0": 30,
-		"1": 28,
-		"2": 25
+		"1": 30,
+		"2": 30
 	  },
-	  "time_limit_seconds": 75,
-	  "description": "Massive grid with serious challenges!"
+	  "colors_array": [
+		"#00FFFF",
+		"#FFA500",
+		"#00FF00"
+	  ],
+	  "description": "This is a grueling level with an expansive grid and a short time limit. You'll need to be fast and meticulous to complete all goals."
 	},
 	{
 	  "level_number": 10,
+	  "title": "The Ultimate Challenge",
 	  "grid_size": {
 		"rows": 8,
 		"cols": 8
 	  },
+	  "time_limit_seconds": 45,
 	  "level_goals": {
-		"0": 35,
-		"1": 32,
-		"2": 30
+		"0": 40,
+		"1": 40,
+		"2": 40
 	  },
-	  "time_limit_seconds": 80,
-	  "description": "The ultimate challenge - can you master the biggest grid?"
+	  "colors_array": [
+		"#00FFFF",
+		"#FFA500",
+		"#00FF00"
+	  ],
+	  "description": "The final level is an 8x8 grid with the most difficult goals. With a short time limit and only three colors, you will need to find long chains and large matches to succeed."
 	}
   ]
 }

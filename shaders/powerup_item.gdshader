@@ -155,7 +155,8 @@ void fragment() {
         vec4 shattered_color = texture(TEXTURE, new_uv) * base_color;
 
         // The final color is the shattered color mixed with a yellow glow
-        final_color.rgb = mix(shattered_color.rgb, vec3(1.0, 1.0, 0.0), alpha_fade * 0.5);
+        //final_color.rgb = mix(shattered_color.rgb, vec3(1.0, 1.0, 0.0), alpha_fade * 0.5);
+		  final_color.rgb = shattered_color.rgb;
 
         // The final alpha is based on the fade and overall removal progress
         final_color.a = (1.0 - removal_progress) * alpha_fade;
