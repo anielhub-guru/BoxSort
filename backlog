@@ -1,0 +1,33 @@
+### Prioritized Backlog
+
+**Sprint 1 (Immediate Focus)**
+
+* Bug Fix: Game tracks scores of failed levels.
+* Feature: More levels.
+* Feature: Local score and progress storage.
+* Feature: Better juice effects.
+* Feature: New item sprites.
+
+---
+
+**Sprint 2 (Next Priority)**
+
+* Feature: Add enemy cells.
+* Feature: Create basic enemy cell effects.
+* Feature: Power-up specific sprites.
+* Feature: Item shop.
+* Feature: Economy system.
+
+---
+
+**Sprint 3 (Future Development)**
+
+* Feature: Story mode.
+* Feature: Overworld map showing powered and unpowered wifi nodes.
+* Feature: User accounts login.
+* Feature: Advanced enemy effects.
+* Feature: Boss enemy cells.
+* Feature: PC Export.
+* Feature: Android Export.
+* Feature: iPhone Export.
+

@@ -910,30 +910,60 @@ func end_drag(pos):
 	dragged_item = null
 	target_item = null
 
+#func _handle_swap_attempt(item1, item2, x1, y1, x2, y2):
+	#"""Handle the swap attempt with proper error checking and timeouts"""
+	#attempt_swap(item1, item2, x1, y1, x2, y2)
+	#await get_tree().create_timer(0.2).timeout
+#
+	#debug_print("Checking for initial match...")
+	#
+	## Add timeout to prevent hanging
+	#var timeout_timer = get_tree().create_timer(ASYNC_TIMEOUT)
+	#var initial_match_found = await check_for_matches()
+	#
+	#if timeout_timer.time_left <= 0:
+		#debug_print("WARNING: Match check timed out!")
+		#attempt_swap(item1, item2, x2, y2, x1, y1) # Swap back
+		#return
+	#
+	#debug_print("Initial match found: " + str(initial_match_found))
+	#if initial_match_found:
+		#debug_print("Initial match found, starting cascade.")
+		#await _handle_cascade()
+	#else:
+		#debug_print("No initial match found, swapping back.")
+		#attempt_swap(item1, item2, x2, y2, x1, y1)
+
 func _handle_swap_attempt(item1, item2, x1, y1, x2, y2):
-	"""Handle the swap attempt with proper error checking and timeouts"""
+	"""Handle the swap attempt with power-up combination checking"""
 	attempt_swap(item1, item2, x1, y1, x2, y2)
 	await get_tree().create_timer(0.2).timeout
 
-	debug_print("Checking for initial match...")
+	debug_print("Checking for power-up combinations...")
 	
-	# Add timeout to prevent hanging
-	var timeout_timer = get_tree().create_timer(ASYNC_TIMEOUT)
-	var initial_match_found = await check_for_matches()
+	var to_remove = {}
+	var powerup_combo_triggered = _check_powerup_combination(item1, item2, to_remove)
 	
-	if timeout_timer.time_left <= 0:
-		debug_print("WARNING: Match check timed out!")
-		attempt_swap(item1, item2, x2, y2, x1, y1) # Swap back
+	if powerup_combo_triggered:
+		debug_print("Power-up combination triggered!")
+		# Remove the power-ups that were combined
+		to_remove[Vector2(x1, y1)] = true
+		to_remove[Vector2(x2, y2)] = true
+		
+		if to_remove.size() > 0:
+			highlight_and_remove(to_remove.keys(), true)
+			await get_tree().create_timer(0.3).timeout
+			await _handle_cascade()
 		return
 	
-	debug_print("Initial match found: " + str(initial_match_found))
+	# If no power-up combo, proceed with normal match checking
+	var initial_match_found = await check_for_matches()
 	if initial_match_found:
 		debug_print("Initial match found, starting cascade.")
 		await _handle_cascade()
 	else:
 		debug_print("No initial match found, swapping back.")
 		attempt_swap(item1, item2, x2, y2, x1, y1)
-
 
 func _get_grid_coords_from_position(pos: Vector2) -> Vector2:
 	# Calculates the nearest grid coordinates for a given screen position.
@@ -2031,3 +2061,262 @@ func flush_all_items():
 	highlight_and_remove(all_positions, true)  # true for bomb-like effect
 	
 	debug_print("Finished flushing " + str(all_positions.size()) + " items")	
+	
+	
+	
+func _check_powerup_combination(item1, item2, to_remove: Dictionary):
+	"""Check if two power-ups are being combined and trigger special effects"""
+	if not _is_any_powerup(item1.item_type) or not _is_any_powerup(item2.item_type):
+		return false
+	
+	var powerup1 = _get_powerup_type(item1.item_type)
+	var powerup2 = _get_powerup_type(item2.item_type)
+	var pos1 = Vector2(item1.grid_x, item1.grid_y)
+	var pos2 = Vector2(item2.grid_x, item2.grid_y)
+	
+	debug_print("Power-up combination detected: " + str(powerup1) + " + " + str(powerup2))
+	
+	# Same power-up combinations
+	if powerup1 == powerup2:
+		_trigger_same_powerup_combination(powerup1, pos1, pos2, to_remove)
+		return true
+	
+	# Different power-up combinations
+	_trigger_mixed_powerup_combination(powerup1, powerup2, pos1, pos2, to_remove)
+	return true
+
+func _trigger_same_powerup_combination(powerup_type: int, pos1: Vector2, pos2: Vector2, to_remove: Dictionary):
+	"""Handle combinations of the same power-up type"""
+	match powerup_type:
+		POWERUP_BOMB_TYPE:
+			# Two bombs = Mega bomb (5x5 explosion)
+			_trigger_mega_bomb_effect(pos1, to_remove)
+			debug_print("Mega bomb effect triggered!")
+		
+		POWERUP_STRIPED_H_TYPE:
+			# Two horizontal striped = Clear 3 horizontal rows
+			_trigger_triple_row_effect(int(pos1.y), to_remove)
+			debug_print("Triple row clear effect triggered!")
+		
+		POWERUP_STRIPED_V_TYPE:
+			# Two vertical striped = Clear 3 vertical columns
+			_trigger_triple_column_effect(int(pos1.x), to_remove)
+			debug_print("Triple column clear effect triggered!")
+		
+		POWERUP_WRAPPED_TYPE:
+			# Two wrapped = Double wrapped explosion (3x3 then 7x7)
+			_trigger_double_wrapped_effect(pos1, to_remove)
+			debug_print("Double wrapped explosion triggered!")
+		
+		POWERUP_COLOR_BOMB_TYPE:
+			# Two color bombs = Clear entire board
+			_trigger_clear_board_effect(to_remove)
+			debug_print("Board clear effect triggered!")
+		
+		POWERUP_STAR_TYPE:
+			# Two stars = Remove all corners and center cross
+			_trigger_star_constellation_effect(to_remove)
+			debug_print("Star constellation effect triggered!")
+		
+		POWERUP_FISH_TYPE:
+			# Two fish = Fish swarm (targets 8-12 random tiles)
+			_trigger_fish_swarm_effect(to_remove)
+			debug_print("Fish swarm effect triggered!")
+
+func _trigger_mixed_powerup_combination(powerup1: int, powerup2: int, pos1: Vector2, pos2: Vector2, to_remove: Dictionary):
+	"""Handle combinations of different power-up types"""
+	var types = [powerup1, powerup2]
+	types.sort()
+	
+	# Color bomb combinations (always clear specific patterns)
+	if POWERUP_COLOR_BOMB_TYPE in types:
+		if POWERUP_STRIPED_H_TYPE in types or POWERUP_STRIPED_V_TYPE in types:
+			# Color bomb + striped = Turn random color into striped candies, then activate all
+			_trigger_color_to_striped_effect(to_remove)
+		elif POWERUP_WRAPPED_TYPE in types:
+			# Color bomb + wrapped = 3 random wrapped candies appear and explode
+			_trigger_color_to_wrapped_effect(to_remove)
+		elif POWERUP_BOMB_TYPE in types:
+			# Color bomb + bomb = Random color becomes bombs, then all explode
+			_trigger_color_to_bomb_effect(to_remove)
+	
+	# Striped + Wrapped = L-shaped mega explosion
+	elif (POWERUP_STRIPED_H_TYPE in types or POWERUP_STRIPED_V_TYPE in types) and POWERUP_WRAPPED_TYPE in types:
+		_trigger_striped_wrapped_combo(pos1, to_remove)
+	
+	# Other combinations default to both effects
+	else:
+		debug_print("Mixed combo: applying both effects")
+		_trigger_powerup_effect(pos1, to_remove)
+		_trigger_powerup_effect(pos2, to_remove)
+
+# Special combination effect implementations
+func _trigger_mega_bomb_effect(pos: Vector2, to_remove: Dictionary):
+	"""5x5 explosion around position"""
+	var x = int(pos.x)
+	var y = int(pos.y)
+	
+	for dx in range(-2, 3):
+		for dy in range(-2, 3):
+			var new_x = x + dx
+			var new_y = y + dy
+			if _is_inside_grid(new_x, new_y):
+				to_remove[Vector2(new_x, new_y)] = true
+
+func _trigger_triple_row_effect(center_row: int, to_remove: Dictionary):
+	"""Clear 3 rows centered on the given row"""
+	for row_offset in range(-1, 2):
+		var target_row = center_row + row_offset
+		if target_row >= 0 and target_row < grid_height:
+			for x in range(grid_width):
+				to_remove[Vector2(x, target_row)] = true
+
+func _trigger_triple_column_effect(center_col: int, to_remove: Dictionary):
+	"""Clear 3 columns centered on the given column"""
+	for col_offset in range(-1, 2):
+		var target_col = center_col + col_offset
+		if target_col >= 0 and target_col < grid_width:
+			for y in range(grid_height):
+				to_remove[Vector2(target_col, y)] = true
+
+func _trigger_double_wrapped_effect(pos: Vector2, to_remove: Dictionary):
+	"""3x3 explosion followed by 7x7 explosion"""
+	var x = int(pos.x)
+	var y = int(pos.y)
+	
+	# First explosion (3x3)
+	for dx in range(-1, 2):
+		for dy in range(-1, 2):
+			var new_x = x + dx
+			var new_y = y + dy
+			if _is_inside_grid(new_x, new_y):
+				to_remove[Vector2(new_x, new_y)] = true
+	
+	# Schedule larger explosion
+	call_deferred("_trigger_delayed_explosion", x, y, 3)
+
+func _trigger_delayed_explosion(x: int, y: int, radius: int):
+	"""Delayed larger explosion for wrapped combo"""
+	await get_tree().create_timer(0.5).timeout
+	
+	var delayed_remove = {}
+	for dx in range(-radius, radius + 1):
+		for dy in range(-radius, radius + 1):
+			var new_x = x + dx
+			var new_y = y + dy
+			if _is_inside_grid(new_x, new_y):
+				delayed_remove[Vector2(new_x, new_y)] = true
+	
+	if delayed_remove.size() > 0:
+		highlight_and_remove(delayed_remove.keys(), true)
+
+func _trigger_clear_board_effect(to_remove: Dictionary):
+	"""Remove all tiles on the board"""
+	for x in range(grid_width):
+		for y in range(grid_height):
+			to_remove[Vector2(x, y)] = true
+
+func _trigger_star_constellation_effect(to_remove: Dictionary):
+	"""Remove corners and center cross pattern"""
+	# Corner positions
+	var corners = [
+		Vector2(0, 0), Vector2(grid_width-1, 0),
+		Vector2(0, grid_height-1), Vector2(grid_width-1, grid_height-1)
+	]
+	
+	for corner in corners:
+		to_remove[corner] = true
+	
+	# Center cross
+	var center_x = grid_width / 2
+	var center_y = grid_height / 2
+	
+	for x in range(grid_width):
+		to_remove[Vector2(x, center_y)] = true
+	for y in range(grid_height):
+		to_remove[Vector2(center_x, y)] = true
+
+func _trigger_fish_swarm_effect(to_remove: Dictionary):
+	"""Target 8-12 random positions"""
+	var available_positions = []
+	for x in range(grid_width):
+		for y in range(grid_height):
+			available_positions.append(Vector2(x, y))
+	
+	available_positions.shuffle()
+	var target_count = min(randi_range(8, 12), available_positions.size())
+	
+	for i in range(target_count):
+		to_remove[available_positions[i]] = true
+
+func _trigger_color_to_striped_effect(to_remove: Dictionary):
+	"""Convert random color to striped, then activate all"""
+	# Find most common color and convert to striped effect
+	var target_color = _find_most_common_color()
+	if target_color >= 0:
+		for x in range(grid_width):
+			for y in range(grid_height):
+				var item = _safe_get_grid_item(x, y)
+				if item != null and _get_base_type(item.item_type) == target_color:
+					# Simulate striped effect at this position
+					_trigger_striped_horizontal_effect(x, y, to_remove)
+
+func _trigger_color_to_wrapped_effect(to_remove: Dictionary):
+	"""Create 3 random wrapped explosions"""
+	var available_positions = []
+	for x in range(grid_width):
+		for y in range(grid_height):
+			available_positions.append(Vector2(x, y))
+	
+	available_positions.shuffle()
+	for i in range(min(3, available_positions.size())):
+		var pos = available_positions[i]
+		_trigger_wrapped_effect(int(pos.x), int(pos.y), to_remove)
+
+func _trigger_color_to_bomb_effect(to_remove: Dictionary):
+	"""Convert random color to bombs then explode all"""
+	var target_color = _find_most_common_color()
+	if target_color >= 0:
+		for x in range(grid_width):
+			for y in range(grid_height):
+				var item = _safe_get_grid_item(x, y)
+				if item != null and _get_base_type(item.item_type) == target_color:
+					_trigger_bomb_effect(x, y, to_remove)
+
+func _trigger_striped_wrapped_combo(pos: Vector2, to_remove: Dictionary):
+	"""L-shaped mega explosion"""
+	var x = int(pos.x)
+	var y = int(pos.y)
+	
+	# Clear entire row and column, then add 3x3 around intersection
+	for i in range(grid_width):
+		to_remove[Vector2(i, y)] = true
+	for i in range(grid_height):
+		to_remove[Vector2(x, i)] = true
+	
+	# Add 3x3 explosion at intersection
+	for dx in range(-1, 2):
+		for dy in range(-1, 2):
+			var new_x = x + dx
+			var new_y = y + dy
+			if _is_inside_grid(new_x, new_y):
+				to_remove[Vector2(new_x, new_y)] = true
+
+func _find_most_common_color() -> int:
+	"""Find the most common color type on the board"""
+	var color_counts = {}
+	for x in range(grid_width):
+		for y in range(grid_height):
+			var item = _safe_get_grid_item(x, y)
+			if item != null:
+				var base_type = _get_base_type(item.item_type)
+				color_counts[base_type] = color_counts.get(base_type, 0) + 1
+	
+	var max_count = 0
+	var target_color = -1
+	for color_type in color_counts.keys():
+		if color_counts[color_type] > max_count:
+			max_count = color_counts[color_type]
+			target_color = color_type
+	
+	return target_color
