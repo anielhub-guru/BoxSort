@@ -27,3 +27,8 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_5xkqp")
 [node name="TileMatchAudio" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("2_ctyjr")
 volume_db = -10.0
+
+[node name="Timer" type="Timer" parent="."]
+autostart = true
+
+[connection signal="timeout" from="Timer" to="Node2D" method="_on_timer_timeout"]

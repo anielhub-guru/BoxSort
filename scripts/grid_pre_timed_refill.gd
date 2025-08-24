@@ -2,7 +2,7 @@
 
 extends Node2D
 
-class_name GameManager
+class_name GameManagerbk
 
 # --- Game Board Properties ---
 # These variables control the size and layout of the game grid.
@@ -123,7 +123,7 @@ var is_game_over = false
 var time_label: Label
 var playerMsg_label: Label
 var goal_label: Label
-@export var bonus_time_per_match: float = 0.2 # Time added for each matched item
+@export var bonus_time_per_match: float = 0.5 # Time added for each matched item
 var playerMsg_initial_position: Vector2
 var level_label: Label
 
@@ -429,7 +429,6 @@ func restart_level():
 	var next_level = current_level_number 
 	
 	debug_print("Restarting level " + str(next_level))
-	playerMsg_label.text = ""
 	start_level(next_level)
 
 
@@ -1102,22 +1101,17 @@ func level_complete():
 		score += time_bonus
 		debug_print("Level " + str(current_level_number) + " complete! Final Score: " + str(score))
 		
-
-		
 		if time_label != null:
 			time_label.text = completion_text
 		
 		# Show completion message briefly, then advance to next level
 		if playerMsg_label != null:
-			playerMsg_label.text = "Get ready for Level " + str(current_level_number + 1)
-			playerMsg_label.modulate = Color(0, 1, 0, 2)
+			playerMsg_label.text = "Level Complete!\n Get ready for Level " + str(current_level_number + 1)
+			playerMsg_label.modulate = Color(0, 1, 0, 1)
 			playerMsg_label.scale = Vector2(1.1, 1.1)
 		
-
-		
-		# Add the flush effect
-		flush_all_items()
-		debug_print("[color=orange]grid flushed[/colored]")
+		# Wait a bit then show the next level button
+		await get_tree().create_timer(2.0).timeout
 		
 		# Show the next level button
 		if next_level_btn != null:
@@ -1140,12 +1134,8 @@ func game_over(completion_text = null):
 		print(final_score)
 		if time_label != null:
 			time_label.text = final_score
-	# Add the flush effect
-		flush_all_items() # use something different
 	else:
 		time_label.text = final_score
-		
-		
 
 
 
@@ -1695,73 +1685,6 @@ func highlight_and_remove(matched_positions, is_bomb_effect = false):
 	
 	debug_print("Finished removing tiles.")
 
-#func _track_goal_progress(matched_positions):
-	#"""Track progress towards level goals when tiles are matched"""
-	#var color_counts = {}
-	#
-	#for pos in matched_positions:
-		#var gx = int(pos.x)
-		#var gy = int(pos.y)
-		#var item = _safe_get_grid_item(gx, gy)
-		#if item != null and is_instance_valid(item):
-			#var base_color_type = _get_base_type(item.item_type)
-			#
-			#if not color_counts.has(base_color_type):
-				#color_counts[base_color_type] = 0
-			#color_counts[base_color_type] += 1
-	#
-	## Update progress in both local tracking and Global singleton
-	#for color_type in color_counts.keys():
-		#if level_goals.has(color_type):
-			#level_progress[color_type] += color_counts[color_type]
-			## Update Global singleton progress
-			#if Global and Global.has_method("update_progress"):
-				#Global.update_progress(color_type, color_counts[color_type])
-			#debug_print("Goal progress for color " + str(color_type) + ": " + str(level_progress[color_type]) + "/" + str(level_goals[color_type]))
-	#
-	#var total_progress = 0
-	#for count in color_counts.values():
-		#total_progress += count
-	#var time_bonus = add_score(total_progress)
-	#if total_progress > 0:
-		#_show_goal_progress_message(color_counts)
-#
-	#
-##func _show_goal_progress_message(color_counts):
-	###	"""Show a message about goal progress"""
-	##if playerMsg_label == null or is_game_over:
-		##var progress_text = ""
-		##var phrases = ["Unfortunate...", "Try again..", "Maybe next time.."]
-		##var random_phrase = phrases.pick_random()
-		##progress_text += random_phrase
-		##if progress_text != "":
-			##playerMsg_label.scale = Vector2(0.8, 0.8)
-			##playerMsg_label.modulate = Color(0.8, 1, 0.8, 1)
-			##playerMsg_label.text = progress_text
-		##return  # Don't show progress messages if game is over
-		##
-	##"""Show a message about goal progress"""
-	##if playerMsg_label == null:
-		##return
-	##
-	##var color_names = ["Cyan", "Orange", "Green"]
-	##var progress_text = ""
-	##
-	##for color_type in color_counts.keys():
-		##if level_goals.has(color_type):
-			##var count = color_counts[color_type]
-			##var color_name = color_names[color_type] if color_type < color_names.size() else "Color " + str(color_type)
-			##var phrases = ["Great Job!", "Well done!", "Amazing!", "Wow!"]
-			##var random_phrase = phrases.pick_random()
-			##if progress_text != "":
-				##progress_text += "..."
-			##progress_text += random_phrase
-	##
-	##if progress_text != "":
-		##playerMsg_label.scale = Vector2(0.8, 0.8)
-		##playerMsg_label.modulate = Color(0.8, 1, 0.8, 1)
-		##playerMsg_label.text = progress_text
-
 func _track_goal_progress(matched_positions):
 	"""Track progress towards level goals when tiles are matched"""
 	var color_counts = {}
@@ -1791,71 +1714,51 @@ func _track_goal_progress(matched_positions):
 		total_progress += count
 	
 	if total_progress > 0:
-		# Add score and get the time bonus (but don't display it here)
-		add_score(total_progress)
-		
-		# Show progress message which now handles the time bonus display
 		_show_goal_progress_message(color_counts)
 
+	
 func _show_goal_progress_message(color_counts):
-	"""Show a message about goal progress with time bonus display"""
+	"""Show a message about goal progress"""
 	if playerMsg_label == null:
 		return
 	
+	var color_names = ["Cyan", "Orange", "Green"]
 	var progress_text = ""
-	var phrases = []
-	var message_color = Color.WHITE
 	
-	# Show discouraging messages when game is over
-	if is_game_over and not is_level_complete:
-		phrases = ["Unfortunate...", "Try again..", "Maybe next time..", "So close!", "Don't give up!"]
-		message_color = Color(1, 0.6, 0.6, 1)  # Light red tint
-		progress_text = phrases.pick_random()
+	for color_type in color_counts.keys():
+		if level_goals.has(color_type):
+			var count = color_counts[color_type]
+			var color_name = color_names[color_type] if color_type < color_names.size() else "Color " + str(color_type)
+			var phrases = ["Great Job!", "Well done!", "Amazing!", "Wow!"]
+			var random_phrase = phrases.pick_random()
+			if progress_text != "":
+				progress_text += "..."
+			progress_text += random_phrase
 	
-	# Show encouraging messages with time bonus during normal gameplay
-	elif not is_game_over and not is_level_complete:
-		var has_goal_progress = false
-		var total_matched = 0
-		
-		for color_type in color_counts.keys():
-			if level_goals.has(color_type):
-				has_goal_progress = true
-				total_matched += color_counts[color_type]
-		
-		if has_goal_progress and total_matched > 0:
-			# Calculate and display time bonus
-			var time_bonus = total_matched * bonus_time_per_match
-			
-			phrases = ["Great Job!", "Well done!", "Amazing!", "Wow!", "Nice!", "Excellent!"]
-			message_color = Color(0.6, 1, 0.6, 1)  # Light green tint
-			
-			var encouragement = phrases.pick_random()
-			progress_text = encouragement + " +" + str(time_bonus) + "s"
-	
-	# Display the message if we have text
-	if not progress_text.is_empty():
-		playerMsg_label.position = playerMsg_initial_position
-		playerMsg_label.scale = Vector2(1, 1)
-		playerMsg_label.modulate = message_color
+	if progress_text != "":
+		playerMsg_label.scale = Vector2(0.8, 0.8)
+		playerMsg_label.modulate = Color(0.8, 1, 0.8, 1)
 		playerMsg_label.text = progress_text
-		playerMsg_label.show()
-		
-		# Auto-fade the message after a delay
-		var fade_tween = create_tween()
-		fade_tween.tween_property(playerMsg_label, "modulate", Color.TRANSPARENT, 2.0).set_delay(0.25)
-		
-		
+
+
 func add_score(matched_count):
 	if is_game_over or is_level_complete:
 		return
-	
+
 	score += matched_count * 10
+
 	var time_added = matched_count * bonus_time_per_match
 	time_left += time_added
-	
-	# Return the time bonus for use in progress message
-	return time_added
 
+	if playerMsg_label != null:
+		playerMsg_label.position = playerMsg_initial_position
+		playerMsg_label.scale = Vector2(1, 1)
+		playerMsg_label.modulate = Color(1, 1, 1, 1)
+		playerMsg_label.text = "+" + str(time_added) + "s"
+		playerMsg_label.show()
+
+		var tween = create_tween()
+		tween.tween_property(playerMsg_label, "modulate", Color(1, 1, 1, 0), 2.0).set_delay(0.25)
 
 func apply_gravity():
 	debug_print("Applying gravity...")
@@ -1894,32 +1797,8 @@ func apply_gravity():
 	debug_print("Finished applying gravity.")
 
 
-func _check_for_empty_cells() -> bool:
-	"""
-	Checks if there are any empty (null) cells in the grid.
-	Returns true if empty cells are found, otherwise false.
-	"""
-	for x in range(grid_width):
-		for y in range(grid_height):
-			if grid_data[x][y] == null:
-				return true
-	return false
-
-
-
 func refill_grid():
-	if refill_in_progress:
-		debug_print("Refill already in progress. Aborting.")
-		return
-	
-	# Don't refill if game is over or level is complete
-	if is_game_over or is_level_complete:
-		debug_print("Game over or level complete - skipping refill.")
-		return
-
 	debug_print("Refilling grid...")
-	refill_in_progress = true	
-	
 	var items_to_create = []
 	
 	for x in range(grid_width):
@@ -1935,7 +1814,6 @@ func refill_grid():
 	
 	if items_to_create.size() == 0:
 		debug_print("No empty cells to refill.")
-		refill_in_progress = false  # Reset flag before returning
 		return
 	
 	var tween = create_tween().set_parallel(true)
@@ -1965,7 +1843,7 @@ func refill_grid():
 	
 	await tween.finished
 	debug_print("Finished refilling grid.")
-	refill_in_progress = false
+
 
 func _get_safe_refill_type(x: int, y: int) -> int:
 	var possible_types = range(colors.size())
@@ -2002,32 +1880,3 @@ func _get_safe_refill_type(x: int, y: int) -> int:
 	
 	# Fallback if no safe type found
 	return randi() % colors.size()
-
-
-func _on_timer_timeout() -> void:
-	if not refill_in_progress and _check_for_empty_cells() and not is_game_over and not is_level_complete:
-		refill_grid()
-		debug_print("[color=pink] Timed refill [/color]")
-		
-		
-func flush_all_items():
-	"""Highlight and remove all items on the grid when game is over"""
-	debug_print("Flushing all items from grid...")
-	
-	var all_positions = []
-	
-	# Collect all valid item positions
-	for x in range(grid_width):
-		for y in range(grid_height):
-			var item = _safe_get_grid_item(x, y)
-			if item != null and is_instance_valid(item):
-				all_positions.append(Vector2(x, y))
-	
-	if all_positions.size() == 0:
-		debug_print("No items to flush")
-		return
-	
-	# Use your existing highlight_and_remove function with game over effect
-	highlight_and_remove(all_positions, true)  # true for bomb-like effect
-	
-	debug_print("Finished flushing " + str(all_positions.size()) + " items")	
