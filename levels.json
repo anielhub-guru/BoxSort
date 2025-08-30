@@ -218,7 +218,7 @@
 		"#4DE0E0",
 		"#FFB34D",
 		"#52E095",
-		"#FF00D4"
+		"#FF80BF"
 	  ],
 	  "description": "Introducing a new color, Magenta! The grid size and time limit are generous, but you now have more options to consider."
 	},
@@ -240,7 +240,7 @@
 		"#4DE0E0",
 		"#FFB34D",
 		"#52E095",
-		"#FF00D4"
+		"#FF80BF"
 	  ],
 	  "description": "With four colors, matches are harder to find. The time limit is reduced to keep you on your toes."
 	},
@@ -262,7 +262,7 @@
 		"#4DE0E0",
 		"#FFB34D",
 		"#52E095",
-		"#FF00D4"
+		"#FF80BF"
 	  ],
 	  "description": "Introducing a new shape, the square! Now you need to match both colors and shapes to clear the tiles."
 	},
@@ -284,8 +284,8 @@
 		"#4DE0E0",
 		"#FFB34D",
 		"#52E095",
-		"#FF00D4",
-		"#FFFF00"
+		"#FF80BF",
+		"#FFEB4D"
 	  ],
 	  "description": "Another new color, Yellow, has been added. The goals have increased to challenge your multi-colored matching skills."
 	},
@@ -308,8 +308,8 @@
 		"#4DE0E0",
 		"#FFB34D",
 		"#52E095",
-		"#FF00D4",
-		"#FFFF00"
+		"#FF80BF",
+		"#FFEB4D"
 	  ],
 	  "description": "The grid expands to 9x9 with five colors. The time limit is slightly extended to give you more room to think."
 	},
@@ -333,9 +333,9 @@
 		"#4DE0E0",
 		"#FFB34D",
 		"#52E095",
-		"#FF00D4",
-		"#FFFF00",
-		"#0000FF"
+		"#FF80BF",
+		"#FFEB4D",
+		"#4D95FF"
 	  ],
 	  "description": "A new color, Blue, is added. The goals have been increased and the time limit is tighter. You'll need to be fast and strategic."
 	},
@@ -360,10 +360,10 @@
 		"#4DE0E0",
 		"#FFB34D",
 		"#52E095",
-		"#FF00D4",
-		"#FFFF00",
-		"#0000FF",
-		"#FF0000"
+		"#FF80BF",
+		"#FFEB4D",
+		"#4D95FF",
+		"#FF604D"
 	  ],
 	  "description": "A tall grid with the color Red! The goals are high, and the grid is bigger. Don't be fooled, this is a tough one."
 	},
@@ -389,11 +389,11 @@
 		"#4DE0E0",
 		"#FFB34D",
 		"#52E095",
-		"#FF00D4",
-		"#FFFF00",
-		"#0000FF",
-		"#FF0000",
-		"#800080"
+		"#FF80BF",
+		"#FFEB4D",
+		"#4D95FF",
+		"#FF604D",
+		"#954DFF"
 	  ],
 	  "description": "Introducing the final color, Purple, and a new shape, the diamond! The grid is now a perfect 10x10 square with all available colors and shapes."
 	},
@@ -419,11 +419,11 @@
 		"#4DE0E0",
 		"#FFB34D",
 		"#52E095",
-		"#FF00D4",
-		"#FFFF00",
-		"#0000FF",
-		"#FF0000",
-		"#800080"
+		"#FF80BF",
+		"#FFEB4D",
+		"#4D95FF",
+		"#FF604D",
+		"#954DFF"
 	  ],
 	  "description": "You're on the brink of victory. This level sharpens your skills for the ultimate test ahead. It's a final tune-up before the grand finale."
 	},
@@ -449,11 +449,11 @@
 		"#4DE0E0",
 		"#FFB34D",
 		"#52E095",
-		"#FF00D4",
-		"#FFFF00",
-		"#0000FF",
-		"#FF0000",
-		"#800080"
+		"#FF80BF",
+		"#FFEB4D",
+		"#4D95FF",
+		"#FF604D",
+		"#954DFF"
 	  ],
 	  "description": "This is the final test of your skills. With a huge grid, all colors and shapes, you'll need to master every aspect of the game to beat the clock and complete your quest."
 	}

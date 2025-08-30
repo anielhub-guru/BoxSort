@@ -26,14 +26,14 @@ var grid_data = [] # A 2D array to hold references to DraggableItem nodes
 var draggable_item_scene = preload("res://scene/DraggableItem.tscn")
 # Colors for the different item types in the game - CHANGED: Now dynamic based on level
 var colors = [
-	Color8(77, 255, 255), # Cyan
-	Color8(255, 179, 77), # Orange
-	Color8(82, 224, 149), # Green
-	Color8(255, 0, 212),  # Magenta
-	Color8(255, 255, 0),  # Yellow
-	Color8(0, 0, 255),    # Blue
-	Color8(255, 0, 0),    # Red
-	Color8(128, 0, 128)   # Purple
+	Color8(77, 255, 255),   # Cyan
+	Color8(255, 179, 77),   # Orange
+	Color8(82, 224, 149),   # Green
+	Color8(255, 128, 191),  # Magenta
+	Color8(255, 235, 77),   # Yellow
+	Color8(77, 149, 255),   # Blue
+	Color8(255, 96, 77),    # Red
+	Color8(149, 77, 255)    # Purple
 ]
 
 
@@ -94,7 +94,7 @@ var _cached_matches = {}
 var _grid_hash = ""
 
 # --- Level Management System ---
-var current_level_number = 1
+var current_level_number = 12
 var levels_data = {}
 var max_available_level = 1
 var _level_completion_processed = false
@@ -496,7 +496,7 @@ func _ready():
 	_game_initialized = true
 	
 	# Start with level 1 (deferred to ensure everything is ready)
-	call_deferred("start_level", 1)
+	call_deferred("start_level", current_level_number)
 
 	next_level_btn = get_node_or_null("../../../MarginContainer/VBoxContainer/NextLevelButton")
 	restart_level_btn = get_node_or_null("../../../MarginContainer/VBoxContainer/RestartButton")
