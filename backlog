@@ -2,7 +2,8 @@
 
 **Sprint 1 (Immediate Focus)**
 
-* Bug Fix: Game tracks scores of failed levels.
+Bug Fix: Game tracks scores of failed levels. (total_score one overworld)
+Bug Fix: more than three colours are not working
 * Feature: More levels.
 * Feature: Local score and progress storage.
 * Feature: Better juice effects.

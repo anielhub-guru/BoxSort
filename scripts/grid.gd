@@ -99,7 +99,8 @@ var _game_initialized = false
 var level_goals = {} # Dictionary to store goals for each color type (e.g., {0: 15, 1: 10})
 var level_progress = {} # Dictionary to track progress for each color type (e.g., {0: 5, 1: 3})
 var is_level_complete = false
-var score = 0
+var score = 0 # tracks level specific points
+var total_score = 0 #tracks total run  points
 
 # --- Drag and Drop Variables ---
 # These variables manage the state of dragging and swapping items.
@@ -373,6 +374,10 @@ func _recalculate_grid_position():
 # FIXED: Ensure proper grid clearing and single generation
 func start_level(level_number: int):
 	"""Start a specific level from scratch"""
+	total_score += score # Add points from the previously completed level to the total score.
+	score = 0 # Reset the score for the new level.
+	debug_print("Starting level " + str(level_number) + ", total score is " + str(total_score))
+	
 	if not _game_initialized:
 		debug_print("Game not fully initialized, deferring level start")
 		call_deferred("start_level", level_number)
@@ -427,7 +432,7 @@ func advance_to_next_level():
 func restart_level():
 	"""Restart the level"""
 	var next_level = current_level_number 
-	
+	score = 0 # This resets the points from the failed level.
 	debug_print("Restarting level " + str(next_level))
 	playerMsg_label.text = ""
 	start_level(next_level)
@@ -477,7 +482,7 @@ func _ready():
 		
 	if restart_level_btn != null:
 		restart_level_btn.pressed.connect(_on_restart_level_button_pressed)
-		restart_level_btn.hide()
+		#restart_level_btn.hide()
 
 func _on_next_level_button_pressed():
 	if next_level_btn != null:
@@ -486,8 +491,8 @@ func _on_next_level_button_pressed():
 	advance_to_next_level()
 	
 func _on_restart_level_button_pressed():
-	if next_level_btn != null:
-		restart_level_btn.hide()
+	#if next_level_btn != null:
+		#restart_level_btn.hide()
 	restart_level()	
 
 
@@ -1724,73 +1729,6 @@ func highlight_and_remove(matched_positions, is_bomb_effect = false):
 	play_match_audio(0.10,1)
 	
 	debug_print("Finished removing tiles.")
-
-#func _track_goal_progress(matched_positions):
-	#"""Track progress towards level goals when tiles are matched"""
-	#var color_counts = {}
-	#
-	#for pos in matched_positions:
-		#var gx = int(pos.x)
-		#var gy = int(pos.y)
-		#var item = _safe_get_grid_item(gx, gy)
-		#if item != null and is_instance_valid(item):
-			#var base_color_type = _get_base_type(item.item_type)
-			#
-			#if not color_counts.has(base_color_type):
-				#color_counts[base_color_type] = 0
-			#color_counts[base_color_type] += 1
-	#
-	## Update progress in both local tracking and Global singleton
-	#for color_type in color_counts.keys():
-		#if level_goals.has(color_type):
-			#level_progress[color_type] += color_counts[color_type]
-			## Update Global singleton progress
-			#if Global and Global.has_method("update_progress"):
-				#Global.update_progress(color_type, color_counts[color_type])
-			#debug_print("Goal progress for color " + str(color_type) + ": " + str(level_progress[color_type]) + "/" + str(level_goals[color_type]))
-	#
-	#var total_progress = 0
-	#for count in color_counts.values():
-		#total_progress += count
-	#var time_bonus = add_score(total_progress)
-	#if total_progress > 0:
-		#_show_goal_progress_message(color_counts)
-#
-	#
-##func _show_goal_progress_message(color_counts):
-	###	"""Show a message about goal progress"""
-	##if playerMsg_label == null or is_game_over:
-		##var progress_text = ""
-		##var phrases = ["Unfortunate...", "Try again..", "Maybe next time.."]
-		##var random_phrase = phrases.pick_random()
-		##progress_text += random_phrase
-		##if progress_text != "":
-			##playerMsg_label.scale = Vector2(0.8, 0.8)
-			##playerMsg_label.modulate = Color(0.8, 1, 0.8, 1)
-			##playerMsg_label.text = progress_text
-		##return  # Don't show progress messages if game is over
-		##
-	##"""Show a message about goal progress"""
-	##if playerMsg_label == null:
-		##return
-	##
-	##var color_names = ["Cyan", "Orange", "Green"]
-	##var progress_text = ""
-	##
-	##for color_type in color_counts.keys():
-		##if level_goals.has(color_type):
-			##var count = color_counts[color_type]
-			##var color_name = color_names[color_type] if color_type < color_names.size() else "Color " + str(color_type)
-			##var phrases = ["Great Job!", "Well done!", "Amazing!", "Wow!"]
-			##var random_phrase = phrases.pick_random()
-			##if progress_text != "":
-				##progress_text += "..."
-			##progress_text += random_phrase
-	##
-	##if progress_text != "":
-		##playerMsg_label.scale = Vector2(0.8, 0.8)
-		##playerMsg_label.modulate = Color(0.8, 1, 0.8, 1)
-		##playerMsg_label.text = progress_text
 
 func _track_goal_progress(matched_positions):
 	"""Track progress towards level goals when tiles are matched"""

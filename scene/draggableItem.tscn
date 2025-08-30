@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://ne2353et8207" path="res://scripts/draggableItem.gd" id="2_0klcd"]
 [ext_resource type="Shader" uid="uid://bly75oai26tiy" path="res://shaders/powerup_item.gdshader" id="2_3jwa8"]
-[ext_resource type="Texture2D" uid="uid://tf6jvooiso2u" path="res://images/godot-Icon-white.svg" id="2_g2npu"]
+[ext_resource type="Texture2D" uid="uid://cxno2fricjmw5" path="res://images/Mangotile.png" id="3_0klcd"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_g2npu"]
 size = Vector2(119, 110)
@@ -45,6 +45,6 @@ shape = SubResource("RectangleShape2D_g2npu")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 material = SubResource("ShaderMaterial_oy2m8")
-texture = ExtResource("2_g2npu")
+texture = ExtResource("3_0klcd")
 
 [connection signal="input_event" from="Area2D" to="." method="_on_area_2d_input_event"]

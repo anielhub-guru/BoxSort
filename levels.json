@@ -11,12 +11,14 @@
 	  "level_goals": {
 		"0": 5,
 		"1": 5,
-		"2": 5
+		"2": 5,
+		"3": 6
 	  },
 	  "colors_array": [
 		"#00FFFF",
 		"#FFA500",
-		"#00FF00"
+		"#00FF00",
+		"#ff00d4"
 	  ],
 	  "description": "Start with a simple 3x3 grid and three distinct colors. This is an introductory level designed for new players to learn the mechanics."
 	},
