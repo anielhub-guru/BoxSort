@@ -16,6 +16,7 @@ var padding = 60
 var next_level_btn
 var restart_level_btn
 var refill_in_progress = false
+var is_matching_in_progress = false
 
 # game audio
 @onready var tile_match_audio = $"../TileMatchAudio" 
@@ -2006,6 +2007,62 @@ func _on_timer_timeout() -> void:
 		refill_grid()
 		debug_print("[color=pink] Timed refill [/color]")
 		
+func _on_match_timer_timeout() -> void:
+	if is_processing_cascade or is_matching_in_progress or refill_in_progress:
+		return
+
+	is_matching_in_progress = true
+	var matches_found = _find_all_matches_in_grid()
+
+	if matches_found.size() > 0:
+		_process_found_matches(matches_found)
+		debug_print("[color=pink] Timed match [/color]")
+	is_matching_in_progress = false
+
+# This new function iterates the grid to find all matches
+func _find_all_matches_in_grid() -> Dictionary:
+	var matches = {}
+	for x in range(grid_width):
+		for y in range(grid_height):
+			var item = _safe_get_grid_item(x, y)
+			if item != null:
+				var base_type = _get_base_type(item.item_type)
+				
+				# Check for horizontal matches
+				if x + 2 < grid_width:
+					var item1 = _safe_get_grid_item(x + 1, y)
+					var item2 = _safe_get_grid_item(x + 2, y)
+					if item1 != null and item2 != null:
+						if _get_base_type(item1.item_type) == base_type and _get_base_type(item2.item_type) == base_type:
+							matches[Vector2(x, y)] = true
+							matches[Vector2(x + 1, y)] = true
+							matches[Vector2(x + 2, y)] = true
+							
+				# Check for vertical matches
+				if y + 2 < grid_height:
+					var item1 = _safe_get_grid_item(x, y + 1)
+					var item2 = _safe_get_grid_item(x, y + 2)
+					if item1 != null and item2 != null:
+						if _get_base_type(item1.item_type) == base_type and _get_base_type(item2.item_type) == base_type:
+							matches[Vector2(x, y)] = true
+							matches[Vector2(x, y + 1)] = true
+							matches[Vector2(x, y + 2)] = true
+							
+	return matches
+	
+# This new function calls your existing _process_match
+func _process_found_matches(matches: Dictionary):
+	var to_remove = {}
+	var new_bombs_to_create = {}
+	
+	for pos in matches.keys():
+		var x = int(pos.x)
+		var y = int(pos.y)
+		_process_match(x, y, "timed", 3, to_remove, new_bombs_to_create)
+	
+	_handle_cascade()
+
+
 		
 func flush_all_items():
 	"""Highlight and remove all items on the grid when game is over"""
