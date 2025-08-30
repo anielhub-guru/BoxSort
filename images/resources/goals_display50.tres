@@ -1,0 +1,12 @@
+[gd_resource type="LabelSettings" load_steps=2 format=3 uid="uid://cef7st0c5vy74"]
+
+[ext_resource type="FontFile" uid="uid://bqsgikbx1kjqx" path="res://font/Syne-Bold.ttf" id="1_ef1p3"]
+
+[resource]
+line_spacing = -38.0
+font = ExtResource("1_ef1p3")
+font_size = 50
+outline_size = 11
+outline_color = Color(0.370166, 0.0945056, 1.20327e-07, 1)
+shadow_size = 40
+shadow_color = Color(0, 0, 0, 0.211765)

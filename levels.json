@@ -11,16 +11,14 @@
 	  "level_goals": {
 		"0": 5,
 		"1": 5,
-		"2": 5,
-		"3": 6
+		"2": 5
 	  },
 	  "colors_array": [
-		"#00FFFF",
-		"#FFA500",
-		"#00FF00",
-		"#ff00d4"
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095"
 	  ],
-	  "description": "Start with a simple 3x3 grid and three distinct colors. This is an introductory level designed for new players to learn the mechanics."
+	  "description": "Start with a simple 3x3 grid and three colors. This level is for new players to learn the mechanics."
 	},
 	{
 	  "level_number": 2,
@@ -36,11 +34,11 @@
 		"2": 10
 	  },
 	  "colors_array": [
-		"#00FFFF",
-		"#FFA500",
-		"#00FF00"
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095"
 	  ],
-	  "description": "The grid size increases to 4x4, and you'll need to match more tiles to clear the level. The time limit remains the same to keep the pressure on."
+	  "description": "The grid size increases to 4x4, and you'll need to match more tiles to clear the level."
 	},
 	{
 	  "level_number": 3,
@@ -56,9 +54,9 @@
 		"2": 15
 	  },
 	  "colors_array": [
-		"#00FFFF",
-		"#FFA500",
-		"#00FF00"
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095"
 	  ],
 	  "description": "The grid gets taller, and the goals increase to keep the challenge steady."
 	},
@@ -76,11 +74,11 @@
 		"2": 20
 	  },
 	  "colors_array": [
-		"#00FFFF",
-		"#FFA500",
-		"#00FF00"
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095"
 	  ],
-	  "description": "The grid expands to a 5x5 square, and the time limit is reduced. You'll need to think and act faster to meet the increased tile goals."
+	  "description": "The grid expands to a 5x5 square, and the time limit is reduced. You'll need to think and act faster."
 	},
 	{
 	  "level_number": 5,
@@ -96,11 +94,11 @@
 		"2": 25
 	  },
 	  "colors_array": [
-		"#00FFFF",
-		"#FFA500",
-		"#00FF00"
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095"
 	  ],
-	  "description": "The grid widens and the goals increase significantly, but with only three colors, you'll find more matches."
+	  "description": "The grid widens and the goals increase significantly. You'll find more matches with only three colors."
 	},
 	{
 	  "level_number": 6,
@@ -116,11 +114,11 @@
 		"2": 35
 	  },
 	  "colors_array": [
-		"#00FFFF",
-		"#FFA500",
-		"#00FF00"
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095"
 	  ],
-	  "description": "The grid expands again, and you'll need to hit higher tile goals for each color. The time limit is still tight, so focus on efficiency."
+	  "description": "The grid expands again, and you'll need to hit higher goals for each color. The time limit is still tight, so focus on efficiency."
 	},
 	{
 	  "level_number": 7,
@@ -136,9 +134,9 @@
 		"2": 45
 	  },
 	  "colors_array": [
-		"#00FFFF",
-		"#FFA500",
-		"#00FF00"
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095"
 	  ],
 	  "description": "The grid gets taller and the time limit decreases. This level is designed to test your ability to make quick, strategic moves."
 	},
@@ -156,9 +154,9 @@
 		"2": 55
 	  },
 	  "colors_array": [
-		"#00FFFF",
-		"#FFA500",
-		"#00FF00"
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095"
 	  ],
 	  "description": "A big square grid with a tight time limit and high goals. You will have more options to create large combos."
 	},
@@ -176,9 +174,9 @@
 		"2": 70
 	  },
 	  "colors_array": [
-		"#00FFFF",
-		"#FFA500",
-		"#00FF00"
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095"
 	  ],
 	  "description": "This is a grueling level with an expansive grid and a short time limit. You'll need to be fast and meticulous to complete all goals."
 	},
@@ -196,11 +194,268 @@
 		"2": 100
 	  },
 	  "colors_array": [
-		"#00FFFF",
-		"#FFA500",
-		"#00FF00"
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095"
 	  ],
-	  "description": "The final level is an 8x8 grid with the most difficult goals. With a short time limit and only three colors, you will need to find long chains and large matches to succeed."
+	  "description": "The final level with only three colors is an 8x8 grid. With a short time limit and high goals, you will need to find long chains and large matches to succeed."
+	},
+	{
+	  "level_number": 11,
+	  "title": "New Color, New Challenge",
+	  "grid_size": {
+		"rows": 8,
+		"cols": 8
+	  },
+	  "time_limit_seconds": 40,
+	  "level_goals": {
+		"0": 30,
+		"1": 30,
+		"2": 30,
+		"3": 30
+	  },
+	  "colors_array": [
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095",
+		"#FF00D4"
+	  ],
+	  "description": "Introducing a new color, Magenta! The grid size and time limit are generous, but you now have more options to consider."
+	},
+	{
+	  "level_number": 12,
+	  "title": "Four Colors, Faster Pace",
+	  "grid_size": {
+		"rows": 8,
+		"cols": 8
+	  },
+	  "time_limit_seconds": 35,
+	  "level_goals": {
+		"0": 35,
+		"1": 35,
+		"2": 35,
+		"3": 35
+	  },
+	  "colors_array": [
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095",
+		"#FF00D4"
+	  ],
+	  "description": "With four colors, matches are harder to find. The time limit is reduced to keep you on your toes."
+	},
+	{
+	  "level_number": 13,
+	  "title": "New Shape, New Rules",
+	  "grid_size": {
+		"rows": 8,
+		"cols": 8
+	  },
+	  "time_limit_seconds": 30,
+	  "level_goals": {
+		"0": 40,
+		"1": 40,
+		"2": 40,
+		"3": 40
+	  },
+	  "colors_array": [
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095",
+		"#FF00D4"
+	  ],
+	  "description": "Introducing a new shape, the square! Now you need to match both colors and shapes to clear the tiles."
+	},
+	{
+	  "level_number": 14,
+	  "title": "Matching More",
+	  "grid_size": {
+		"rows": 8,
+		"cols": 8
+	  },
+	  "time_limit_seconds": 30,
+	  "level_goals": {
+		"0": 50,
+		"1": 50,
+		"2": 50,
+		"3": 50
+	  },
+	  "colors_array": [
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095",
+		"#FF00D4",
+		"#FFFF00"
+	  ],
+	  "description": "Another new color, Yellow, has been added. The goals have increased to challenge your multi-colored matching skills."
+	},
+	{
+	  "level_number": 15,
+	  "title": "The Big Five",
+	  "grid_size": {
+		"rows": 9,
+		"cols": 9
+	  },
+	  "time_limit_seconds": 35,
+	  "level_goals": {
+		"0": 60,
+		"1": 60,
+		"2": 60,
+		"3": 60,
+		"4": 60
+	  },
+	  "colors_array": [
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095",
+		"#FF00D4",
+		"#FFFF00"
+	  ],
+	  "description": "The grid expands to 9x9 with five colors. The time limit is slightly extended to give you more room to think."
+	},
+	{
+	  "level_number": 16,
+	  "title": "Blue Tiles",
+	  "grid_size": {
+		"rows": 9,
+		"cols": 9
+	  },
+	  "time_limit_seconds": 30,
+	  "level_goals": {
+		"0": 70,
+		"1": 70,
+		"2": 70,
+		"3": 70,
+		"4": 70,
+		"5": 70
+	  },
+	  "colors_array": [
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095",
+		"#FF00D4",
+		"#FFFF00",
+		"#0000FF"
+	  ],
+	  "description": "A new color, Blue, is added. The goals have been increased and the time limit is tighter. You'll need to be fast and strategic."
+	},
+	{
+	  "level_number": 17,
+	  "title": "Red Alert!",
+	  "grid_size": {
+		"rows": 10,
+		"cols": 9
+	  },
+	  "time_limit_seconds": 30,
+	  "level_goals": {
+		"0": 80,
+		"1": 80,
+		"2": 80,
+		"3": 80,
+		"4": 80,
+		"5": 80,
+		"6": 80
+	  },
+	  "colors_array": [
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095",
+		"#FF00D4",
+		"#FFFF00",
+		"#0000FF",
+		"#FF0000"
+	  ],
+	  "description": "A tall grid with the color Red! The goals are high, and the grid is bigger. Don't be fooled, this is a tough one."
+	},
+	{
+	  "level_number": 18,
+	  "title": "Purple Patch",
+	  "grid_size": {
+		"rows": 10,
+		"cols": 10
+	  },
+	  "time_limit_seconds": 25,
+	  "level_goals": {
+		"0": 90,
+		"1": 90,
+		"2": 90,
+		"3": 90,
+		"4": 90,
+		"5": 90,
+		"6": 90,
+		"7": 90
+	  },
+	  "colors_array": [
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095",
+		"#FF00D4",
+		"#FFFF00",
+		"#0000FF",
+		"#FF0000",
+		"#800080"
+	  ],
+	  "description": "Introducing the final color, Purple, and a new shape, the diamond! The grid is now a perfect 10x10 square with all available colors and shapes."
+	},
+	{
+	  "level_number": 19,
+	  "title": "The Gauntlet",
+	  "grid_size": {
+		"rows": 10,
+		"cols": 10
+	  },
+	  "time_limit_seconds": 22,
+	  "level_goals": {
+		"0": 95,
+		"1": 95,
+		"2": 95,
+		"3": 95,
+		"4": 95,
+		"5": 95,
+		"6": 95,
+		"7": 95
+	  },
+	  "colors_array": [
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095",
+		"#FF00D4",
+		"#FFFF00",
+		"#0000FF",
+		"#FF0000",
+		"#800080"
+	  ],
+	  "description": "You're on the brink of victory. This level sharpens your skills for the ultimate test ahead. It's a final tune-up before the grand finale."
+	},
+	{
+	  "level_number": 20,
+	  "title": "The Grand Finale",
+	  "grid_size": {
+		"rows": 10,
+		"cols": 10
+	  },
+	  "time_limit_seconds": 20,
+	  "level_goals": {
+		"0": 100,
+		"1": 100,
+		"2": 100,
+		"3": 100,
+		"4": 100,
+		"5": 100,
+		"6": 100,
+		"7": 100
+	  },
+	  "colors_array": [
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095",
+		"#FF00D4",
+		"#FFFF00",
+		"#0000FF",
+		"#FF0000",
+		"#800080"
+	  ],
+	  "description": "This is the final test of your skills. With a huge grid, all colors and shapes, you'll need to master every aspect of the game to beat the clock and complete your quest."
 	}
   ]
 }

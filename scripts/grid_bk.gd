@@ -2,7 +2,7 @@
 
 extends Node2D
 
-class_name GameManager
+class_name GameManager2
 
 # --- Game Board Properties ---
 # These variables control the size and layout of the game grid.
@@ -24,16 +24,11 @@ var refill_in_progress = false
 # Stores the current state of the game board and game-related information.
 var grid_data = [] # A 2D array to hold references to DraggableItem nodes
 var draggable_item_scene = preload("res://scene/DraggableItem.tscn")
-# Colors for the different item types in the game - CHANGED: Now dynamic based on level
-var colors = [
+# Colors for the different item types in the game.
+const colors = [
 	Color8(77, 255, 255), # Cyan
 	Color8(255, 179, 77), # Orange
-	Color8(82, 224, 149), # Green
-	Color8(255, 0, 212),  # Magenta
-	Color8(255, 255, 0),  # Yellow
-	Color8(0, 0, 255),    # Blue
-	Color8(255, 0, 0),    # Red
-	Color8(128, 0, 128)   # Purple
+	Color8(82, 224, 149) # Green
 ]
 
 
@@ -240,20 +235,6 @@ func get_default_colors() -> Array:
 	]
 	return default_colors	
 
-# ADDED: Function to parse color from string
-func _parse_color_from_string(color_str: String) -> Color:
-	"""Parse color from hex string or color name"""
-	if color_str.begins_with("#"):
-		# Hex color parsing
-		var hex = color_str.substr(1)
-		if hex.length() == 6:
-			var r = ("0x" + hex.substr(0, 2)).hex_to_int() / 255.0
-			var g = ("0x" + hex.substr(2, 2)).hex_to_int() / 255.0
-			var b = ("0x" + hex.substr(4, 2)).hex_to_int() / 255.0
-			return Color(r, g, b, 1.0)
-	
-	# Fallback to white if parsing fails
-	return Color.WHITE
 
 
 # FIXED: Remove duplicate grid generation
@@ -298,22 +279,15 @@ func load_level(level_number: int) -> bool:
 	level_goals.clear()
 	level_progress.clear()
 	
-	# CHANGED: Process level colors and update the colors array
+	# Get level colors with fallback to default colors
 	var level_colors = []
 	if level_data.has("colors_array"):
-		var colors_data = level_data["colors_array"]
-		for color_item in colors_data:
-			if color_item is String:
-				level_colors.append(_parse_color_from_string(color_item))
-			else:
-				level_colors.append(color_item)
+		level_colors = level_data["colors_array"]
 	else:
 		level_colors = get_default_colors()
 		debug_print("Using default colors for level " + str(level_number))
 	
-	# ADDED: Update the colors array to match level requirements
-	colors = level_colors
-	debug_print("Updated colors array to: " + str(colors))
+	print_rich("[color=yellow]level colors[/color]: ", level_colors)
 		
 	# Set the goals in the Global singleton for other nodes to access.
 	var goals_data = level_data["level_goals"]
@@ -331,9 +305,6 @@ func load_level(level_number: int) -> bool:
 	# Store goals locally for game logic
 	level_goals = goals_to_pass.duplicate()
 	print_rich("[color=yellow]level goals[/color]: ", level_goals)
-	
-	# ADDED: Recreate color textures for the new color set
-	await _create_color_textures_safe()
 	
 	# Get tile_info from level data, but prioritize current color_textures if available
 	var tile_info = {}
@@ -423,9 +394,9 @@ func start_level(level_number: int):
 	_clear_grid()
 	
 	# Load level configuration (this sets up goals, colors, etc. but doesn't generate grid)
-	if not await load_level(level_number):
+	if not load_level(level_number):
 		debug_print("Failed to load level " + str(level_number) + ", using default")
-		if not await load_level(1):
+		if not load_level(1):
 			debug_print("CRITICAL: Could not load default level!")
 			return
 	

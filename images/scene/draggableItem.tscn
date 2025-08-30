@@ -1,0 +1,50 @@
+[gd_scene load_steps=6 format=3 uid="uid://b26f00tdwtxab"]
+
+[ext_resource type="Script" uid="uid://ne2353et8207" path="res://scripts/draggableItem.gd" id="1_anddr"]
+[ext_resource type="Shader" uid="uid://bly75oai26tiy" path="res://shaders/powerup_item.gdshader" id="2_p5imf"]
+[ext_resource type="Texture2D" uid="uid://cf7xiqfng7xjw" path="res://images/mango_tile.png" id="3_6wf1h"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_g2npu"]
+size = Vector2(119, 110)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_oy2m8"]
+shader = ExtResource("2_p5imf")
+shader_parameter/base_color = Color(0, 0, 0, 1)
+shader_parameter/time_scale = 1.0
+shader_parameter/is_bomb = false
+shader_parameter/pulse_strength = 0.1
+shader_parameter/pulse_speed = 2.0
+shader_parameter/stripe_horizontal = false
+shader_parameter/stripe_vertical = false
+shader_parameter/stripe_color = Color(1, 1, 1, 0.8)
+shader_parameter/stripe_width = 0.2
+shader_parameter/stripe_speed = 1.5
+shader_parameter/is_wrapped = false
+shader_parameter/glow_strength = 0.5
+shader_parameter/glow_color = Color(1, 1, 1, 1)
+shader_parameter/rainbow_effect = false
+shader_parameter/rainbow_speed = 1.5
+shader_parameter/star_effect = false
+shader_parameter/sparkle_intensity = 0.6
+shader_parameter/sparkle_frequency = 4.0
+shader_parameter/fish_effect = false
+shader_parameter/wave_strength = 0.3
+shader_parameter/wave_frequency = 2.0
+shader_parameter/removal_progress = 0.0
+shader_parameter/shatter_speed = 3.0
+shader_parameter/shatter_size = 10.0
+
+[node name="DraggableItem" type="Node2D"]
+script = ExtResource("1_anddr")
+
+[node name="Area2D" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+position = Vector2(-0.5, 0)
+shape = SubResource("RectangleShape2D_g2npu")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_oy2m8")
+texture = ExtResource("3_6wf1h")
+
+[connection signal="input_event" from="Area2D" to="." method="_on_area_2d_input_event"]
