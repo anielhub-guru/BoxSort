@@ -27,7 +27,7 @@ func _update_display(level_goals: Dictionary, tile_info: Dictionary, colors: Arr
 		var tile_resource = tile_info.get(goal_type, null)
 		
 		# Safe color access with bounds checking
-		var color_code = Color.WHITE  # Default fallback color
+		var color_code = Color.BLACK  # Default fallback color
 		if colors.size() > 0 and goal_type < colors.size():
 			color_code = colors[goal_type]
 		elif colors.size() > 0:
@@ -109,12 +109,14 @@ func create_goal_item(goal_type: int, current: int, target: int, tile_resource, 
 	if tile_resource != null and tile_resource is Texture:
 		var texture_rect = TextureRect.new()
 		texture_rect.texture = tile_resource
-		#texture_rect.texture = preload("res://images/godot-Icon-white.svg") #Hard coded quick fix
+		texture_rect.texture = preload("res://images/Mangotile.png") #Hard coded quick fix
+		texture_rect.modulate = color_code 
 		texture_rect.custom_minimum_size = Vector2(40, 40)
 		texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		texture_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 		content_container.add_child(texture_rect)
 		print("Added ViewportTexture for goal_type: ", goal_type)
+
 	else:
 		# Fallback colored rectangle
 		var fallback_rect = ColorRect.new()
@@ -128,7 +130,7 @@ func create_goal_item(goal_type: int, current: int, target: int, tile_resource, 
 	text_label.text = str(current) + "/" + str(target)
 	if current >= target:
 		text_label.text += "✓"
-		text_label.add_theme_color_override("font_color", Color.WHITE)
+		text_label.add_theme_color_override("font_color", Color.BLACK)
 	else:
 		text_label.add_theme_color_override("font_color", Color.BLACK)
 	

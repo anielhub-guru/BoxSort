@@ -17,9 +17,12 @@ var next_level_btn
 var restart_level_btn
 var refill_in_progress = false
 var is_matching_in_progress = false
+var powerup_textures: Dictionary = {}
+var allow_initial_matches = false  # allow initaial matches for testing
 
 # game audio
 @onready var tile_match_audio = $"../TileMatchAudio" 
+
 
 # --- Game State and Data ---
 # Stores the current state of the game board and game-related information.
@@ -39,7 +42,6 @@ var colors = [
 
 
 # --- Enhanced Power-up Constants ---
-const BOMB_MATCH_COUNT = 4 # Number of matching items to create a bomb
 const POWERUP_BOMB_TYPE = 100      # 3x3 explosion (existing)
 const POWERUP_STRIPED_H_TYPE = 200 # Horizontal striped candy
 const POWERUP_STRIPED_V_TYPE = 300 # Vertical striped candy
@@ -51,15 +53,29 @@ const POWERUP_FISH_TYPE = 700      # Fish candy (targets random tiles)
 # Power-up creation thresholds
 const STRIPED_MATCH_COUNT = 4      # 4 in a line creates striped
 const WRAPPED_MATCH_COUNT = 5      # L or T shape creates wrapped
-const COLOR_BOMB_MATCH_COUNT = 5   # 5 in a line creates color bomb
-const STAR_MATCH_COUNT = 6         # 6 in a line creates star
-const FISH_MATCH_COUNT = 7         # 7 matches creates fish
+const STAR_MATCH_COUNT = 5         # 5 in a line creates star (was 6)
+const COLOR_BOMB_MATCH_COUNT = 6   # 6 in a line creates color bomb (was 5)
+#const FISH_MATCH_COUNT = 7         # 7 matches creates fish
 
 
-# --- Utility Functions for Item Types --- May need to delete
-func _is_powerup_bomb(item_type):
-	return item_type >= POWERUP_BOMB_TYPE
+func _preload_powerup_textures():
+	"""Preload all power-up sprite textures"""
+	powerup_textures = {
+		POWERUP_BOMB_TYPE: load("res://sprites/tnt.svg"), #Creates a 3x3 explosion. It is created by matching four items in a line
+		POWERUP_STRIPED_H_TYPE: load("res://sprites/wave_right.svg"), #Removes all items in a horizontal line. It is created by matching four items in a line.
+		POWERUP_STRIPED_V_TYPE: load("res://sprites/wave_left.svg"), #Removes all items in a vertical line. It is created by matching four items in a line.
+		POWERUP_WRAPPED_TYPE: load("res://sprites/volcano.svg"), #Creates a 3x3 explosion and a second explosion afterwards. It is created by matching items in an L or T shape.
+		POWERUP_COLOR_BOMB_TYPE: load("res://sprites/rocket_barrage.svg"), # # Removes all items of the same color. It is created by matching six items in a line.
+		POWERUP_STAR_TYPE: load("res://sprites/star.svg"), # Removes all tiles in a diagonal direction. It is created by matching five items in a line.
+		POWERUP_FISH_TYPE: load("res://sprites/fish.svg") #Targets and removes random tiles on the board. It is created by matching seven items.
+	}
+	debug_print("Loaded " + str(powerup_textures.size()) + " power-up textures")
 
+func test_powerup_creation():
+	_create_item(1, 2, 3, false, POWERUP_BOMB_TYPE)
+	_create_item(2, 4, 5, false, POWERUP_STRIPED_H_TYPE)
+	_create_item(0, 1, 1, false, POWERUP_STAR_TYPE)
+	debug_print("[color=red]Test powerbumb added[/color]")
 
 # --- Enhanced Utility Functions ---
 func _is_any_powerup(item_type):
@@ -95,7 +111,7 @@ var _cached_matches = {}
 var _grid_hash = ""
 
 # --- Level Management System ---
-var current_level_number = 12
+var current_level_number = 6
 var levels_data = {}
 var max_available_level = 1
 var _level_completion_processed = false
@@ -471,7 +487,7 @@ func restart_level():
 func _show_game_complete_message():
 	"""Show message when all levels are completed"""
 	if playerMsg_label:
-		playerMsg_label.text = "ALL LEVELS COMPLETE!\nAmazing job!"
+		playerMsg_label.text = "ALL LEVELS COMPLETE!"
 		playerMsg_label.modulate = Color(1, 1, 0, 1)
 		playerMsg_label.scale = Vector2(1.2, 1.2)
 
@@ -496,8 +512,15 @@ func _ready():
 	# Mark as initialized
 	_game_initialized = true
 	
+	# Load power-up textures
+	_preload_powerup_textures()
+	
+	# Test powerup creation
+	#test_powerup_creation()
+	
 	# Start with level 1 (deferred to ensure everything is ready)
 	call_deferred("start_level", current_level_number)
+	call_deferred("debug_texture_status")
 
 	next_level_btn = get_node_or_null("../../../MarginContainer/VBoxContainer/NextLevelButton")
 	restart_level_btn = get_node_or_null("../../../MarginContainer/VBoxContainer/RestartButton")
@@ -691,33 +714,50 @@ func _generate_grid():
 	debug_print("Grid generation complete with " + str(grid_width * grid_height) + " cells")
 
 func _get_random_item_type(x, y):
+	if allow_initial_matches:
+		# Allow matches for testing
+		return randi() % colors.size()
+	else:
 	# Ensures no immediate matches are created on the initial grid generation.
-	var possible_types = range(colors.size())
-	
-	if x >= 2:
-		var item1 = _safe_get_grid_item(x-1, y)
-		var item2 = _safe_get_grid_item(x-2, y)
-		if item1 != null and item2 != null:
-			var t1 = _get_base_type(item1.item_type)
-			var t2 = _get_base_type(item2.item_type)
-			if t1 == t2 and possible_types.has(t1):
-				possible_types.erase(t1)
-	
-	if y >= 2:
-		var item1 = _safe_get_grid_item(x, y-1)
-		var item2 = _safe_get_grid_item(x, y-2)
-		if item1 != null and item2 != null:
-			var t1 = _get_base_type(item1.item_type)
-			var t2 = _get_base_type(item2.item_type)
-			if t1 == t2 and possible_types.has(t1):
-				possible_types.erase(t1)
-	
-	if possible_types.size() == 0:
-		possible_types = range(colors.size())
-	
-	return possible_types[randi() % possible_types.size()]
+		var possible_types = range(colors.size())
+		
+		if x >= 2:
+			var item1 = _safe_get_grid_item(x-1, y)
+			var item2 = _safe_get_grid_item(x-2, y)
+			if item1 != null and item2 != null:
+				var t1 = _get_base_type(item1.item_type)
+				var t2 = _get_base_type(item2.item_type)
+				if t1 == t2 and possible_types.has(t1):
+					possible_types.erase(t1)
+		
+		if y >= 2:
+			var item1 = _safe_get_grid_item(x, y-1)
+			var item2 = _safe_get_grid_item(x, y-2)
+			if item1 != null and item2 != null:
+				var t1 = _get_base_type(item1.item_type)
+				var t2 = _get_base_type(item2.item_type)
+				if t1 == t2 and possible_types.has(t1):
+					possible_types.erase(t1)
+		
+		if possible_types.size() == 0:
+			possible_types = range(colors.size())
+		
+		return possible_types[randi() % possible_types.size()]
 
-# Updated _create_item function with better shader material handling
+
+func preload_powerup_textures():
+	"""Preload all power-up sprite textures"""
+	powerup_textures = {
+		POWERUP_BOMB_TYPE: load("res://sprites/tnt.svg"),
+		POWERUP_STRIPED_H_TYPE: load("res://sprites/coconut_bomb.svg"),
+		POWERUP_STRIPED_V_TYPE: load("res://sprites/applecar.svg"),
+		POWERUP_WRAPPED_TYPE: load("res://sprites/pinapple.svg"),
+		POWERUP_COLOR_BOMB_TYPE: load("res://sprites/rocket_barrage.svg"),
+		POWERUP_STAR_TYPE: load("res://sprites/star.svg"),
+		POWERUP_FISH_TYPE: load("res://sprites/fish.svg")
+	}
+	debug_print("Loaded " + str(powerup_textures.size()) + " power-up textures")
+
 func _create_item(item_type, x, y, is_bomb = false, powerup_type = 0):
 	var item_instance = draggable_item_scene.instantiate()
 	
@@ -731,16 +771,28 @@ func _create_item(item_type, x, y, is_bomb = false, powerup_type = 0):
 		# Fallback for old bomb creation method
 		final_item_type = POWERUP_BOMB_TYPE + item_type
 		debug_print("Creating bomb item (legacy): final=" + str(final_item_type))
-
 	item_instance.item_type = final_item_type
 	item_instance.grid_x = x
 	item_instance.grid_y = y
-
 	var sprite_instance = item_instance.get_node("Sprite2D")
 	if sprite_instance == null:
 		debug_print("ERROR: Sprite2D not found in draggable item!")
 		return null
-
+	
+	# Set the appropriate texture for powerups
+	var powerup_offset = _get_powerup_type(final_item_type)
+	debug_print("DEBUG: final_item_type=" + str(final_item_type) + " powerup_offset=" + str(powerup_offset))
+	debug_print("DEBUG: powerup_textures keys: " + str(powerup_textures.keys()))
+	debug_print("DEBUG: Current texture: " + str(sprite_instance.texture))
+	
+	if powerup_offset > 0 and powerup_textures.has(powerup_offset):
+		var old_texture = sprite_instance.texture
+		sprite_instance.texture = powerup_textures[powerup_offset]
+		debug_print("Applied powerup texture for type: " + str(powerup_offset))
+		debug_print("DEBUG: Texture changed from " + str(old_texture) + " to " + str(sprite_instance.texture))
+	else:
+		debug_print("DEBUG: No texture change - powerup_offset=" + str(powerup_offset) + " has_texture=" + str(powerup_textures.has(powerup_offset)))
+	
 	# Create new material instance - IMPORTANT for shader effects
 	var new_material = null
 	if sprite_instance.material != null:
@@ -753,7 +805,6 @@ func _create_item(item_type, x, y, is_bomb = false, powerup_type = 0):
 		new_material.shader = powerup_shader
 	
 	sprite_instance.material = new_material
-
 	var base_type = _get_base_type(final_item_type)
 	if base_type < colors.size():
 		var item_color = colors[base_type]
@@ -764,11 +815,9 @@ func _create_item(item_type, x, y, is_bomb = false, powerup_type = 0):
 		debug_print("WARNING: Invalid color type: " + str(base_type))
 		# Set a default color
 		new_material.set_shader_parameter("base_color", Color.WHITE)
-
 	var tex_size = sprite_instance.texture.get_size()
 	var scale_factor = cell_size / tex_size.x
 	sprite_instance.scale = Vector2(scale_factor, scale_factor)
-
 	# Position calculation
 	var extra_offset_x = 0.0
 	var extra_offset_y = 0.0
@@ -778,7 +827,6 @@ func _create_item(item_type, x, y, is_bomb = false, powerup_type = 0):
 	else:
 		extra_offset_x = x * shelf_gap_x
 		extra_offset_y = y * shelf_gap_y
-
 	item_instance.position = Vector2(
 		x * cell_size + cell_size / 2 + extra_offset_x,
 		y * cell_size + cell_size / 2 + extra_offset_y
@@ -790,6 +838,25 @@ func _create_item(item_type, x, y, is_bomb = false, powerup_type = 0):
 	add_child(item_instance)
 	return item_instance
 
+# Complete _create_item function with sprite support
+
+func debug_texture_status():
+	debug_print("=== TEXTURE DEBUG STATUS ===")
+	debug_print("color_textures size: " + str(color_textures.size()))
+	debug_print("powerup_textures size: " + str(powerup_textures.size()))
+	debug_print("colors array size: " + str(colors.size()))
+	
+	# Check if base draggable item has texture
+	var test_item = draggable_item_scene.instantiate()
+	var test_sprite = test_item.get_node("Sprite2D")
+	if test_sprite != null:
+		debug_print("Base draggable item texture: " + str(test_sprite.texture))
+		debug_print("Base texture size: " + str(test_sprite.texture.get_size() if test_sprite.texture != null else "NULL"))
+	else:
+		debug_print("ERROR: No Sprite2D in draggable item scene!")
+	test_item.queue_free()
+	
+	debug_print("=== END TEXTURE DEBUG ===")
 
 func _apply_powerup_visual_effects(material, item_type, base_color):
 	"""Apply visual effects based on power-up type"""
@@ -945,29 +1012,6 @@ func end_drag(pos):
 	dragged_item = null
 	target_item = null
 
-#func _handle_swap_attempt(item1, item2, x1, y1, x2, y2):
-	#"""Handle the swap attempt with proper error checking and timeouts"""
-	#attempt_swap(item1, item2, x1, y1, x2, y2)
-	#await get_tree().create_timer(0.2).timeout
-#
-	#debug_print("Checking for initial match...")
-	#
-	## Add timeout to prevent hanging
-	#var timeout_timer = get_tree().create_timer(ASYNC_TIMEOUT)
-	#var initial_match_found = await check_for_matches()
-	#
-	#if timeout_timer.time_left <= 0:
-		#debug_print("WARNING: Match check timed out!")
-		#attempt_swap(item1, item2, x2, y2, x1, y1) # Swap back
-		#return
-	#
-	#debug_print("Initial match found: " + str(initial_match_found))
-	#if initial_match_found:
-		#debug_print("Initial match found, starting cascade.")
-		#await _handle_cascade()
-	#else:
-		#debug_print("No initial match found, swapping back.")
-		#attempt_swap(item1, item2, x2, y2, x1, y1)
 
 func _handle_swap_attempt(item1, item2, x1, y1, x2, y2):
 	"""Handle the swap attempt with power-up combination checking"""
@@ -1435,14 +1479,14 @@ func _determine_powerup_type(length: int, direction: String, x: int, y: int) -> 
 	if _check_for_l_or_t_shape(x, y):
 		return POWERUP_WRAPPED_TYPE
 	
-	# Length-based power-ups
+	# Length-based power-ups - SWAPPED CONDITIONS
 	match length:
 		7, 8, 9, 10: # Very long matches create fish
 			return POWERUP_FISH_TYPE
-		6: # 6 in a line creates star
-			return POWERUP_STAR_TYPE
-		5: # 5 in a line creates color bomb
+		6: # 6 in a line creates color bomb (was star)
 			return POWERUP_COLOR_BOMB_TYPE
+		5: # 5 in a line creates star (was color bomb)
+			return POWERUP_STAR_TYPE
 		4: # 4 in a line creates striped candy
 			if direction == "horizontal":
 				return POWERUP_STRIPED_V_TYPE  # Horizontal match creates vertical striped
@@ -1892,17 +1936,25 @@ func apply_gravity():
 	debug_print("Finished applying gravity.")
 
 
+
 func _check_for_empty_cells() -> bool:
 	"""
-	Checks if there are any empty (null) cells in the grid.
+	Safely checks if there are any empty (null) cells in the grid.
 	Returns true if empty cells are found, otherwise false.
 	"""
+	# Use the safe grid checking approach
+	if not _is_grid_ready():
+		debug_print("Grid not ready for empty cell check")
+		return false
+	
 	for x in range(grid_width):
 		for y in range(grid_height):
-			if grid_data[x][y] == null:
+			var item = _safe_get_grid_item(x, y)
+			if item == null:
+				debug_print("Found empty cell at (" + str(x) + "," + str(y) + ")")
 				return true
+	
 	return false
-
 
 
 func refill_grid():
@@ -2010,7 +2062,7 @@ func _on_timer_timeout() -> void:
 func _on_match_timer_timeout() -> void:
 	if is_processing_cascade or is_matching_in_progress or refill_in_progress:
 		return
-
+	#debug_print("[color=orange] Timed match check [/color]")
 	is_matching_in_progress = true
 	var matches_found = _find_all_matches_in_grid()
 
@@ -2019,51 +2071,161 @@ func _on_match_timer_timeout() -> void:
 		debug_print("[color=pink] Timed match [/color]")
 	is_matching_in_progress = false
 
-# This new function iterates the grid to find all matches
+
 func _find_all_matches_in_grid() -> Dictionary:
+	"""Find all current matches on the grid"""
+	debug_print("Scanning grid for matches...")
 	var matches = {}
+	
+	# Ensure grid is valid
+	if not _is_grid_ready():
+		debug_print("Grid not ready for match detection")
+		return matches
+	
+	# Check horizontal matches (3+ in a row)
+	for y in range(grid_height):
+		var current_type = -1
+		var run_length = 0
+		var run_start = 0
+		
+		for x in range(grid_width):
+			var item = _safe_get_grid_item(x, y)
+			var item_type = -1
+			
+			if item != null and is_instance_valid(item):
+				item_type = _get_base_type(item.item_type)
+			
+			if item_type == current_type and item_type >= 0:
+				run_length += 1
+			else:
+				# Process previous run if it was a match
+				if run_length >= 3:
+					for i in range(run_start, run_start + run_length):
+						matches[Vector2(i, y)] = true
+					debug_print("Found horizontal match of " + str(run_length) + " at row " + str(y) + " starting at " + str(run_start))
+				
+				# Start new run
+				current_type = item_type
+				run_length = 1 if item_type >= 0 else 0
+				run_start = x
+		
+		# Check final run
+		if run_length >= 3:
+			for i in range(run_start, run_start + run_length):
+				matches[Vector2(i, y)] = true
+			debug_print("Found horizontal match of " + str(run_length) + " at row " + str(y) + " starting at " + str(run_start))
+	
+	# Check vertical matches (3+ in a column)
 	for x in range(grid_width):
+		var current_type = -1
+		var run_length = 0
+		var run_start = 0
+		
 		for y in range(grid_height):
 			var item = _safe_get_grid_item(x, y)
-			if item != null:
-				var base_type = _get_base_type(item.item_type)
+			var item_type = -1
+			
+			if item != null and is_instance_valid(item):
+				item_type = _get_base_type(item.item_type)
+			
+			if item_type == current_type and item_type >= 0:
+				run_length += 1
+			else:
+				# Process previous run if it was a match
+				if run_length >= 3:
+					for i in range(run_start, run_start + run_length):
+						matches[Vector2(x, i)] = true
+					debug_print("Found vertical match of " + str(run_length) + " at column " + str(x) + " starting at " + str(run_start))
 				
-				# Check for horizontal matches
-				if x + 2 < grid_width:
-					var item1 = _safe_get_grid_item(x + 1, y)
-					var item2 = _safe_get_grid_item(x + 2, y)
-					if item1 != null and item2 != null:
-						if _get_base_type(item1.item_type) == base_type and _get_base_type(item2.item_type) == base_type:
-							matches[Vector2(x, y)] = true
-							matches[Vector2(x + 1, y)] = true
-							matches[Vector2(x + 2, y)] = true
-							
-				# Check for vertical matches
-				if y + 2 < grid_height:
-					var item1 = _safe_get_grid_item(x, y + 1)
-					var item2 = _safe_get_grid_item(x, y + 2)
-					if item1 != null and item2 != null:
-						if _get_base_type(item1.item_type) == base_type and _get_base_type(item2.item_type) == base_type:
-							matches[Vector2(x, y)] = true
-							matches[Vector2(x, y + 1)] = true
-							matches[Vector2(x, y + 2)] = true
-							
+				# Start new run
+				current_type = item_type
+				run_length = 1 if item_type >= 0 else 0
+				run_start = y
+		
+		# Check final run
+		if run_length >= 3:
+			for i in range(run_start, run_start + run_length):
+				matches[Vector2(x, i)] = true
+			debug_print("Found vertical match of " + str(run_length) + " at column " + str(x) + " starting at " + str(run_start))
+	
+	debug_print("Total matches found: " + str(matches.size()))
 	return matches
+
+	
 	
 # This new function calls your existing _process_match
+#func _process_found_matches(matches: Dictionary):
+	#var to_remove = {}
+	#var new_bombs_to_create = {}
+	#
+	#for pos in matches.keys():
+		#var x = int(pos.x)
+		#var y = int(pos.y)
+		#_process_match(x, y, "timed", 3, to_remove, new_bombs_to_create)
+	#
+	#_handle_cascade()
+
 func _process_found_matches(matches: Dictionary):
-	var to_remove = {}
-	var new_bombs_to_create = {}
+	"""Process the matches found by the timed system"""
+	debug_print("Processing " + str(matches.size()) + " timed matches...")
 	
-	for pos in matches.keys():
-		var x = int(pos.x)
-		var y = int(pos.y)
-		_process_match(x, y, "timed", 3, to_remove, new_bombs_to_create)
+	if matches.size() == 0:
+		return
 	
-	_handle_cascade()
+	# Use your existing highlight_and_remove function
+	highlight_and_remove(matches.keys(), false)
+	await get_tree().create_timer(0.3).timeout
+	
+	# Trigger cascade to handle falling tiles and new matches
+	await _handle_cascade()
+	
+	debug_print("Timed match processing complete")
 
+func _on_match_timer_timeout_alternative() -> void:
+	"""Alternative approach using your existing check_for_matches system"""
+	debug_print("Alternative match timer triggered...")
+	
+	if is_processing_cascade or is_matching_in_progress or refill_in_progress:
+		return
+	
+	if is_game_over or is_level_complete:
+		return
 
+	is_matching_in_progress = true
+	
+	# Use your existing match detection system
+	var matches_found = await check_for_matches()
+	
+	if matches_found:
+		debug_print("[color=pink] Timed match found - starting cascade [/color]")
+		await _handle_cascade()
+	else:
+		debug_print("No timed matches found")
 		
+	is_matching_in_progress = false
+	
+	# Debug function to check timer status
+func debug_timer_status():
+	"""Debug function to check if timers are working"""
+	debug_print("=== TIMER DEBUG ===")
+	var timers = get_children().filter(func(child): return child is Timer)
+	debug_print("Found " + str(timers.size()) + " timer nodes")
+	
+	for timer in timers:
+		debug_print("Timer: " + str(timer.name) + 
+				   " - wait_time: " + str(timer.wait_time) + 
+				   " - is_stopped: " + str(timer.is_stopped()) +
+				   " - autostart: " + str(timer.autostart))
+	
+	debug_print("Game state - initialized: " + str(_game_initialized) +
+			   ", processing_cascade: " + str(is_processing_cascade) +
+			   ", matching_in_progress: " + str(is_matching_in_progress) +
+			   ", refill_in_progress: " + str(refill_in_progress))
+	debug_print("=== END TIMER DEBUG ===")
+
+
+
+	
 func flush_all_items():
 	"""Highlight and remove all items on the grid when game is over"""
 	debug_print("Flushing all items from grid...")
