@@ -47,15 +47,15 @@ const POWERUP_STRIPED_H_TYPE = 200 # Horizontal striped candy
 const POWERUP_STRIPED_V_TYPE = 300 # Vertical striped candy
 const POWERUP_WRAPPED_TYPE = 400   # Wrapped candy (3x3 + second explosion)
 const POWERUP_COLOR_BOMB_TYPE = 500 # Color bomb (removes all of one color)
-const POWERUP_STAR_TYPE = 600      # Star candy (diagonal removal)
+const POWERUP_LIGHTNING_TYPE = 600      # Star candy (diagonal removal)
 const POWERUP_FISH_TYPE = 700      # Fish candy (targets random tiles)
 
 # Power-up creation thresholds
 const STRIPED_MATCH_COUNT = 4      # 4 in a line creates striped
 const WRAPPED_MATCH_COUNT = 5      # L or T shape creates wrapped
-const STAR_MATCH_COUNT = 5         # 5 in a line creates star (was 6)
+const LIGHTNING_MATCH_COUNT = 5         # 5 in a line creates star (was 6)
 const COLOR_BOMB_MATCH_COUNT = 6   # 6 in a line creates color bomb (was 5)
-#const FISH_MATCH_COUNT = 7         # 7 matches creates fish
+
 
 
 func _preload_powerup_textures():
@@ -66,16 +66,25 @@ func _preload_powerup_textures():
 		POWERUP_STRIPED_V_TYPE: load("res://sprites/wave_left.svg"), #Removes all items in a vertical line. It is created by matching four items in a line.
 		POWERUP_WRAPPED_TYPE: load("res://sprites/volcano.svg"), #Creates a 3x3 explosion and a second explosion afterwards. It is created by matching items in an L or T shape.
 		POWERUP_COLOR_BOMB_TYPE: load("res://sprites/rocket_barrage.svg"), # # Removes all items of the same color. It is created by matching six items in a line.
-		POWERUP_STAR_TYPE: load("res://sprites/star.svg"), # Removes all tiles in a diagonal direction. It is created by matching five items in a line.
+		POWERUP_LIGHTNING_TYPE: load("res://sprites/storm.svg"), # Removes all tiles in a diagonal direction. It is created by matching five items in a line.
 		POWERUP_FISH_TYPE: load("res://sprites/fish.svg") #Targets and removes random tiles on the board. It is created by matching seven items.
 	}
 	debug_print("Loaded " + str(powerup_textures.size()) + " power-up textures")
 
 func test_powerup_creation():
+	# Test bomb creation
 	_create_item(1, 2, 3, false, POWERUP_BOMB_TYPE)
-	_create_item(2, 4, 5, false, POWERUP_STRIPED_H_TYPE)
-	_create_item(0, 1, 1, false, POWERUP_STAR_TYPE)
-	debug_print("[color=red]Test powerbumb added[/color]")
+	debug_print("Test BOMB created at (2,3)")
+	
+	# Test wrapped creation  
+	_create_item(2, 0, 0, false, POWERUP_WRAPPED_TYPE)
+	debug_print("Test WRAPPED created at (0,0)")
+	
+	# Test other powerups
+	_create_item(0, 4, 1, false, POWERUP_COLOR_BOMB_TYPE)
+	_create_item(3, 1, 4, false, POWERUP_LIGHTNING_TYPE)
+	
+	debug_print("[color=red]Test powerups added[/color]")
 
 # --- Enhanced Utility Functions ---
 func _is_any_powerup(item_type):
@@ -84,8 +93,8 @@ func _is_any_powerup(item_type):
 func _get_powerup_type(item_type):
 	if item_type >= POWERUP_FISH_TYPE:
 		return POWERUP_FISH_TYPE
-	elif item_type >= POWERUP_STAR_TYPE:
-		return POWERUP_STAR_TYPE
+	elif item_type >= POWERUP_LIGHTNING_TYPE:
+		return POWERUP_LIGHTNING_TYPE
 	elif item_type >= POWERUP_COLOR_BOMB_TYPE:
 		return POWERUP_COLOR_BOMB_TYPE
 	elif item_type >= POWERUP_WRAPPED_TYPE:
@@ -97,6 +106,9 @@ func _get_powerup_type(item_type):
 	elif item_type >= POWERUP_BOMB_TYPE:
 		return POWERUP_BOMB_TYPE
 	return 0
+
+
+
 
 func _get_base_type(item_type):
 	if _is_any_powerup(item_type):
@@ -111,7 +123,7 @@ var _cached_matches = {}
 var _grid_hash = ""
 
 # --- Level Management System ---
-var current_level_number = 6
+var current_level_number = 20
 var levels_data = {}
 var max_available_level = 1
 var _level_completion_processed = false
@@ -745,18 +757,6 @@ func _get_random_item_type(x, y):
 		return possible_types[randi() % possible_types.size()]
 
 
-func preload_powerup_textures():
-	"""Preload all power-up sprite textures"""
-	powerup_textures = {
-		POWERUP_BOMB_TYPE: load("res://sprites/tnt.svg"),
-		POWERUP_STRIPED_H_TYPE: load("res://sprites/coconut_bomb.svg"),
-		POWERUP_STRIPED_V_TYPE: load("res://sprites/applecar.svg"),
-		POWERUP_WRAPPED_TYPE: load("res://sprites/pinapple.svg"),
-		POWERUP_COLOR_BOMB_TYPE: load("res://sprites/rocket_barrage.svg"),
-		POWERUP_STAR_TYPE: load("res://sprites/star.svg"),
-		POWERUP_FISH_TYPE: load("res://sprites/fish.svg")
-	}
-	debug_print("Loaded " + str(powerup_textures.size()) + " power-up textures")
 
 func _create_item(item_type, x, y, is_bomb = false, powerup_type = 0):
 	var item_instance = draggable_item_scene.instantiate()
@@ -870,11 +870,11 @@ func _apply_powerup_visual_effects(material, item_type, base_color):
 	
 	match powerup_type:
 		POWERUP_BOMB_TYPE:
-			# Pulsing orange/red effect for bomb
-			material.set_shader_parameter("is_bomb", true)
-			material.set_shader_parameter("pulse_strength", 0.4)
-			material.set_shader_parameter("pulse_speed", 2.5)
-			debug_print("Applied bomb visual effects")
+			material.set_shader_parameter("fire_effect", true)
+			material.set_shader_parameter("fire_speed", 0.5)
+			material.set_shader_parameter("pulse_strength", 0.3)
+			material.set_shader_parameter("pulse_speed", 0.8)
+			debug_print("Applied  bomb visual effects")
 		
 		POWERUP_STRIPED_H_TYPE:
 			# Horizontal stripes effect
@@ -902,27 +902,27 @@ func _apply_powerup_visual_effects(material, item_type, base_color):
 			debug_print("Applied wrapped visual effects")
 		
 		POWERUP_COLOR_BOMB_TYPE:
-			# Rainbow/multicolor effect
-			material.set_shader_parameter("rainbow_effect", true)
-			material.set_shader_parameter("rainbow_speed", 1.5)
+			# Fire/burning effect
+			material.set_shader_parameter("fire_effect", true)
+			material.set_shader_parameter("fire_speed", 1.5)
 			material.set_shader_parameter("pulse_strength", 0.3)
 			material.set_shader_parameter("pulse_speed", 1.8)
 			debug_print("Applied color bomb visual effects")
 		
-		POWERUP_STAR_TYPE:
+		POWERUP_LIGHTNING_TYPE:
 			# Star effect with sparkles
-			material.set_shader_parameter("star_effect", true)
-			material.set_shader_parameter("sparkle_intensity", 0.7)
-			material.set_shader_parameter("sparkle_frequency", 6.0)
-			material.set_shader_parameter("base_color", Color.YELLOW)
-			debug_print("Applied star visual effects")
+			material.set_shader_parameter("lightning_effect", true)
+			material.set_shader_parameter("lightning_intensity", 5)
+			material.set_shader_parameter("lightning_speed", 3.0)
+			material.set_shader_parameter("lightning_color", Color.WHITE)
+			debug_print("Applied lightning visual effects")
 		
 		POWERUP_FISH_TYPE:
 			# Fish effect with swimming animation
 			material.set_shader_parameter("fish_effect", true)
 			material.set_shader_parameter("wave_strength", 0.4)
 			material.set_shader_parameter("wave_frequency", 3.0)
-			material.set_shader_parameter("base_color", Color.CYAN)
+			#material.set_shader_parameter("base_color", Color.CYAN)
 			debug_print("Applied fish visual effects")
 
 
@@ -933,8 +933,8 @@ func _reset_shader_parameters(material):
 	material.set_shader_parameter("stripe_horizontal", false)
 	material.set_shader_parameter("stripe_vertical", false)
 	material.set_shader_parameter("is_wrapped", false)
-	material.set_shader_parameter("rainbow_effect", false)
-	material.set_shader_parameter("star_effect", false)
+	material.set_shader_parameter("fire_effect", false)
+	material.set_shader_parameter("lightning_effect", false)
 	material.set_shader_parameter("fish_effect", false)
 	
 	# Reset numeric parameters to defaults
@@ -1328,12 +1328,34 @@ func check_for_matches() -> bool:
 	
 	return result
 
+
 func _perform_match_check() -> bool:
 	"""Perform the actual match checking logic"""
 	var to_remove = {}
 	var new_bombs_to_create = {}
 
 	set_meta("bomb_affected_tiles", [])
+
+	# ADDED: Check for 2x2 square matches first (for fish powerups)
+	var square_matches = _check_for_square_matches()
+	for square_pos in square_matches.keys():
+		var x = int(square_pos.x)
+		var y = int(square_pos.y)
+		
+		# Get the color type from one of the square tiles
+		var sample_item = _safe_get_grid_item(x, y)
+		if sample_item != null:
+			var base_type = _get_base_type(sample_item.item_type)
+			
+			# Mark all 4 tiles in the square for removal
+			to_remove[Vector2(x, y)] = true
+			to_remove[Vector2(x + 1, y)] = true
+			to_remove[Vector2(x, y + 1)] = true
+			to_remove[Vector2(x + 1, y + 1)] = true
+			
+			# Create fish powerup at the top-left position of the square
+			new_bombs_to_create[square_pos] = {"type": base_type, "powerup": POWERUP_FISH_TYPE}
+			debug_print("Creating fish powerup from 2x2 square at (" + str(x) + "," + str(y) + ")")
 
 	# Check for horizontal matches of 3 or more
 	for y in range(grid_height):
@@ -1418,7 +1440,7 @@ func _perform_match_check() -> bool:
 		return true
 
 	return false
-	
+		
 # --- Enhanced Match Processing with Power-up Creation Logic ---
 func _process_match(x: int, y: int, direction: String, length: int, to_remove: Dictionary, new_bombs_to_create: Dictionary):
 	var grid_item = _safe_get_grid_item(x, y)
@@ -1472,21 +1494,28 @@ func _process_match(x: int, y: int, direction: String, length: int, to_remove: D
 				to_remove[item_pos] = true
 
 
+# Updated _determine_powerup_type function with swapped conditions
 func _determine_powerup_type(length: int, direction: String, x: int, y: int) -> int:
 	"""Determine what type of power-up to create based on match characteristics"""
 	
-	# Check for L or T shapes for wrapped candy
+	# Priority 1: Check for L or T shapes for BOMB creation
 	if _check_for_l_or_t_shape(x, y):
+		debug_print("Creating BOMB from L/T shape at (" + str(x) + "," + str(y) + ")")
+		return POWERUP_BOMB_TYPE
+	
+	# Priority 2: Check for corner/edge matches for WRAPPED candy
+	if _is_corner_match(x, y, length, direction):
+		debug_print("Creating WRAPPED from corner match at (" + str(x) + "," + str(y) + ")")
 		return POWERUP_WRAPPED_TYPE
 	
-	# Length-based power-ups - SWAPPED CONDITIONS
+	# Priority 3: Length-based power-ups
 	match length:
 		7, 8, 9, 10: # Very long matches create fish
 			return POWERUP_FISH_TYPE
-		6: # 6 in a line creates color bomb (was star)
+		6: # 6 in a line creates lightning
+			return POWERUP_LIGHTNING_TYPE
+		5: # 5 in a line creates color bomb
 			return POWERUP_COLOR_BOMB_TYPE
-		5: # 5 in a line creates star (was color bomb)
-			return POWERUP_STAR_TYPE
 		4: # 4 in a line creates striped candy
 			if direction == "horizontal":
 				return POWERUP_STRIPED_V_TYPE  # Horizontal match creates vertical striped
@@ -1495,6 +1524,63 @@ func _determine_powerup_type(length: int, direction: String, x: int, y: int) -> 
 		_:
 			return 0  # No power-up for matches less than 4
 			
+			
+			
+func _is_corner_match(x: int, y: int, length: int, direction: String) -> bool:
+	"""Check if match occurs at board corners, edges, or specific patterns for wrapped candy"""
+	
+	# Require at least 4 tiles for wrapped candy creation
+	if length < 4:
+		return false
+	
+	# Method 1: True corners of the board
+	if (x == 0 and y == 0) or (x == grid_width-1 and y == 0) or  (x == 0 and y == grid_height-1) or (x == grid_width-1 and y == grid_height-1):
+		debug_print("Corner match detected at true corner (" + str(x) + "," + str(y) + ")")
+		return true
+	
+	# Method 2: Near corners (within 1-2 cells of any corner)
+	var near_left_edge = x <= 1
+	var near_right_edge = x >= grid_width - 2
+	var near_top_edge = y <= 1
+	var near_bottom_edge = y >= grid_height - 2
+	
+	var near_corner = (near_left_edge or near_right_edge) and (near_top_edge or near_bottom_edge)
+	if near_corner:
+		debug_print("Near-corner match detected at (" + str(x) + "," + str(y) + ")")
+		return true
+	
+	# Method 3: Edge matches with sufficient length (5+ tiles)
+	if length >= 5:
+		var is_edge = (x == 0 or x == grid_width-1 or y == 0 or y == grid_height-1)
+		if is_edge:
+			debug_print("Edge match with length " + str(length) + " detected at (" + str(x) + "," + str(y) + ")")
+			return true
+	
+	return false
+
+
+
+func _is_corner_match_strict(x: int, y: int, length: int, direction: String) -> bool:
+	"""Stricter corner match detection - only true corners and immediate neighbors"""
+	
+	if length < 4:
+		return false
+	
+	# Only true corners and their immediate neighbors
+	var corners = [
+		Vector2(0, 0), Vector2(1, 0), Vector2(0, 1),  # Top-left corner area
+		Vector2(grid_width-1, 0), Vector2(grid_width-2, 0), Vector2(grid_width-1, 1),  # Top-right
+		Vector2(0, grid_height-1), Vector2(1, grid_height-1), Vector2(0, grid_height-2),  # Bottom-left
+		Vector2(grid_width-1, grid_height-1), Vector2(grid_width-2, grid_height-1), Vector2(grid_width-1, grid_height-2)  # Bottom-right
+	]
+	
+	var current_pos = Vector2(x, y)
+	if current_pos in corners:
+		debug_print("Strict corner match detected at (" + str(x) + "," + str(y) + ")")
+		return true
+	
+	return false
+
 			
 func _check_for_l_or_t_shape(x: int, y: int) -> bool:
 	"""Check if there's an L or T shaped match at the given position"""
@@ -1580,8 +1666,8 @@ func _trigger_powerup_effect(pos: Vector2, to_remove: Dictionary):
 			_trigger_wrapped_effect(x, y, to_remove)
 		POWERUP_COLOR_BOMB_TYPE:
 			_trigger_color_bomb_effect(x, y, to_remove)
-		POWERUP_STAR_TYPE:
-			_trigger_star_effect(x, y, to_remove)
+		POWERUP_LIGHTNING_TYPE:
+			_trigger_lightning_effect(x, y, to_remove)
 		POWERUP_FISH_TYPE:
 			_trigger_fish_effect(x, y, to_remove)
 	
@@ -1681,7 +1767,7 @@ func _trigger_color_bomb_effect(x: int, y: int, to_remove: Dictionary):
 					var tile_pos = Vector2(grid_x, grid_y)
 					to_remove[tile_pos] = true
 
-func _trigger_star_effect(x: int, y: int, to_remove: Dictionary):
+func _trigger_lightning_effect(x: int, y: int, to_remove: Dictionary):
 	"""Remove tiles in diagonal directions"""
 	debug_print("Triggering star effect at (" + str(x) + "," + str(y) + ")")
 	
@@ -2299,7 +2385,7 @@ func _trigger_same_powerup_combination(powerup_type: int, pos1: Vector2, pos2: V
 			_trigger_clear_board_effect(to_remove)
 			debug_print("Board clear effect triggered!")
 		
-		POWERUP_STAR_TYPE:
+		POWERUP_LIGHTNING_TYPE:
 			# Two stars = Remove all corners and center cross
 			_trigger_star_constellation_effect(to_remove)
 			debug_print("Star constellation effect triggered!")
@@ -2506,3 +2592,42 @@ func _find_most_common_color() -> int:
 			target_color = color_type
 	
 	return target_color
+
+
+#Add this function to detect 2x2 square matches
+func _check_for_square_matches() -> Dictionary:
+	"""Check for 2x2 square matches and return positions to create fish powerups"""
+	var fish_positions = {}
+	
+	# Check each possible 2x2 square position
+	for x in range(grid_width - 1):
+		for y in range(grid_height - 1):
+			if _is_2x2_square_match(x, y):
+				# Place fish at top-left of the square (or could be random position in square)
+				fish_positions[Vector2(x, y)] = true
+				debug_print("Found 2x2 square match at (" + str(x) + "," + str(y) + ")")
+	
+	return fish_positions
+
+func _is_2x2_square_match(x: int, y: int) -> bool:
+	"""Check if there's a 2x2 square of the same color starting at position (x,y)"""
+	var top_left = _safe_get_grid_item(x, y)
+	var top_right = _safe_get_grid_item(x + 1, y)
+	var bottom_left = _safe_get_grid_item(x, y + 1)
+	var bottom_right = _safe_get_grid_item(x + 1, y + 1)
+	
+	# Check if all 4 items exist and are valid
+	if top_left == null or top_right == null or bottom_left == null or bottom_right == null:
+		return false
+	
+	if not is_instance_valid(top_left) or not is_instance_valid(top_right) or not is_instance_valid(bottom_left) or not is_instance_valid(bottom_right):
+		return false
+	
+	# Get base types (ignore powerup modifiers)
+	var type1 = _get_base_type(top_left.item_type)
+	var type2 = _get_base_type(top_right.item_type)
+	var type3 = _get_base_type(bottom_left.item_type)
+	var type4 = _get_base_type(bottom_right.item_type)
+	
+	# Check if all 4 tiles are the same base color
+	return type1 == type2 and type2 == type3 and type3 == type4

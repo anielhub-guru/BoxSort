@@ -42,26 +42,6 @@
 	},
 	{
 	  "level_number": 3,
-	  "title": "Bigger Grid, Higher Goals",
-	  "grid_size": {
-		"rows": 5,
-		"cols": 4
-	  },
-	  "time_limit_seconds": 55,
-	  "level_goals": {
-		"0": 15,
-		"1": 15,
-		"2": 15
-	  },
-	  "colors_array": [
-		"#4DE0E0",
-		"#FFB34D",
-		"#52E095"
-	  ],
-	  "description": "The grid gets taller, and the goals increase to keep the challenge steady."
-	},
-	{
-	  "level_number": 4,
 	  "title": "Tighter Time",
 	  "grid_size": {
 		"rows": 5,
@@ -81,10 +61,10 @@
 	  "description": "The grid expands to a 5x5 square, and the time limit is reduced. You'll need to think and act faster."
 	},
 	{
-	  "level_number": 5,
-	  "title": "Wider Grid, More Tiles",
+	  "level_number": 4,
+	  "title": "Nightmare I - First Test",
 	  "grid_size": {
-		"rows": 6,
+		"rows": 5,
 		"cols": 5
 	  },
 	  "time_limit_seconds": 45,
@@ -98,16 +78,76 @@
 		"#FFB34D",
 		"#52E095"
 	  ],
-	  "description": "The grid widens and the goals increase significantly. You'll find more matches with only three colors."
+	  "description": "The difficulty ramps up with a tighter time limit, but the color palette stays the same."
+	},
+	{
+	  "level_number": 5,
+	  "title": "Relief - Back to Basics",
+	  "grid_size": {
+		"rows": 4,
+		"cols": 4
+	  },
+	  "time_limit_seconds": 55,
+	  "level_goals": {
+		"0": 15,
+		"1": 15,
+		"2": 15
+	  },
+	  "colors_array": [
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095"
+	  ],
+	  "description": "The grid and goals are scaled back to give you a break after the last challenge."
 	},
 	{
 	  "level_number": 6,
-	  "title": "Larger Goals",
+	  "title": "Wider Grid, More Tiles",
 	  "grid_size": {
 		"rows": 6,
-		"cols": 6
+		"cols": 5
+	  },
+	  "time_limit_seconds": 45,
+	  "level_goals": {
+		"0": 30,
+		"1": 30,
+		"2": 30
+	  },
+	  "colors_array": [
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095"
+	  ],
+	  "description": "The grid widens to a 6x5. You'll find more matches, but still with three colors."
+	},
+	{
+	  "level_number": 7,
+	  "title": "Nightmare II - Speed Demon",
+	  "grid_size": {
+		"rows": 6,
+		"cols": 5
 	  },
 	  "time_limit_seconds": 40,
+	  "level_goals": {
+		"0": 40,
+		"1": 40,
+		"2": 40
+	  },
+	  "colors_array": [
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095"
+	  ],
+	  "description": "The goals have increased significantly to challenge your speed and matching skills."
+	},
+	{
+	  "level_number": 8,
+	  "title": "Relief - Catch Your Breath",
+	  "grid_size": {
+		"rows": 5,
+		"cols": 5
+	  },
+	  "time_limit_seconds": 50,
 	  "level_goals": {
 		"0": 35,
 		"1": 35,
@@ -118,123 +158,41 @@
 		"#FFB34D",
 		"#52E095"
 	  ],
-	  "description": "The grid expands again, and you'll need to hit higher goals for each color. The time limit is still tight, so focus on efficiency."
-	},
-	{
-	  "level_number": 7,
-	  "title": "The First Real Test",
-	  "grid_size": {
-		"rows": 7,
-		"cols": 6
-	  },
-	  "time_limit_seconds": 35,
-	  "level_goals": {
-		"0": 45,
-		"1": 45,
-		"2": 45
-	  },
-	  "colors_array": [
-		"#4DE0E0",
-		"#FFB34D",
-		"#52E095"
-	  ],
-	  "description": "The grid gets taller and the time limit decreases. This level is designed to test your ability to make quick, strategic moves."
-	},
-	{
-	  "level_number": 8,
-	  "title": "Big Square Grid",
-	  "grid_size": {
-		"rows": 7,
-		"cols": 7
-	  },
-	  "time_limit_seconds": 30,
-	  "level_goals": {
-		"0": 55,
-		"1": 55,
-		"2": 55
-	  },
-	  "colors_array": [
-		"#4DE0E0",
-		"#FFB34D",
-		"#52E095"
-	  ],
-	  "description": "A big square grid with a tight time limit and high goals. You will have more options to create large combos."
+	  "description": "The grid and goals are slightly easier to give you more room to think after the last challenge."
 	},
 	{
 	  "level_number": 9,
-	  "title": "Massive Grid, Massive Challenge",
+	  "title": "The Gauntlet",
 	  "grid_size": {
-		"rows": 8,
+		"rows": 7,
 		"cols": 7
 	  },
-	  "time_limit_seconds": 25,
+	  "time_limit_seconds": 45,
 	  "level_goals": {
-		"0": 70,
-		"1": 70,
-		"2": 70
+		"0": 50,
+		"1": 50,
+		"2": 50
 	  },
 	  "colors_array": [
 		"#4DE0E0",
 		"#FFB34D",
 		"#52E095"
 	  ],
-	  "description": "This is a grueling level with an expansive grid and a short time limit. You'll need to be fast and meticulous to complete all goals."
+	  "description": "The grid expands to a 7x7 with just three colors."
 	},
 	{
 	  "level_number": 10,
-	  "title": "The Ultimate Challenge",
+	  "title": "Nightmare III - Color Shock",
 	  "grid_size": {
-		"rows": 8,
-		"cols": 8
-	  },
-	  "time_limit_seconds": 20,
-	  "level_goals": {
-		"0": 100,
-		"1": 100,
-		"2": 100
-	  },
-	  "colors_array": [
-		"#4DE0E0",
-		"#FFB34D",
-		"#52E095"
-	  ],
-	  "description": "The final level with only three colors is an 8x8 grid. With a short time limit and high goals, you will need to find long chains and large matches to succeed."
-	},
-	{
-	  "level_number": 11,
-	  "title": "New Color, New Challenge",
-	  "grid_size": {
-		"rows": 8,
-		"cols": 8
-	  },
-	  "time_limit_seconds": 40,
-	  "level_goals": {
-		"0": 30,
-		"1": 30,
-		"2": 30,
-		"3": 30
-	  },
-	  "colors_array": [
-		"#4DE0E0",
-		"#FFB34D",
-		"#52E095",
-		"#FF80BF"
-	  ],
-	  "description": "Introducing a new color, Magenta! The grid size and time limit are generous, but you now have more options to consider."
-	},
-	{
-	  "level_number": 12,
-	  "title": "Four Colors, Faster Pace",
-	  "grid_size": {
-		"rows": 8,
-		"cols": 8
+		"rows": 7,
+		"cols": 7
 	  },
 	  "time_limit_seconds": 35,
 	  "level_goals": {
-		"0": 35,
-		"1": 35,
-		"2": 35,
-		"3": 35
+		"0": 60,
+		"1": 60,
+		"2": 60,
+		"3": 60
 	  },
 	  "colors_array": [
 		"#4DE0E0",
@@ -242,38 +200,16 @@
 		"#52E095",
 		"#FF80BF"
 	  ],
-	  "description": "With four colors, matches are harder to find. The time limit is reduced to keep you on your toes."
+	  "description": "A new color, **Magenta**, is finally added. You'll need to be fast and strategic with this expanded color palette."
 	},
 	{
-	  "level_number": 13,
-	  "title": "New Shape, New Rules",
+	  "level_number": 11,
+	  "title": "Relief - The Grid Returns",
 	  "grid_size": {
-		"rows": 8,
-		"cols": 8
+		"rows": 6,
+		"cols": 6
 	  },
-	  "time_limit_seconds": 30,
-	  "level_goals": {
-		"0": 40,
-		"1": 40,
-		"2": 40,
-		"3": 40
-	  },
-	  "colors_array": [
-		"#4DE0E0",
-		"#FFB34D",
-		"#52E095",
-		"#FF80BF"
-	  ],
-	  "description": "Introducing a new shape, the square! Now you need to match both colors and shapes to clear the tiles."
-	},
-	{
-	  "level_number": 14,
-	  "title": "Matching More",
-	  "grid_size": {
-		"rows": 8,
-		"cols": 8
-	  },
-	  "time_limit_seconds": 30,
+	  "time_limit_seconds": 45,
 	  "level_goals": {
 		"0": 50,
 		"1": 50,
@@ -284,67 +220,40 @@
 		"#4DE0E0",
 		"#FFB34D",
 		"#52E095",
-		"#FF80BF",
-		"#FFEB4D"
+		"#FF80BF"
 	  ],
-	  "description": "Another new color, Yellow, has been added. The goals have increased to challenge your multi-colored matching skills."
+	  "description": "The grid shrinks to give you a little more breathing room, but the goals are still high."
 	},
 	{
-	  "level_number": 15,
-	  "title": "The Big Five",
+	  "level_number": 12,
+	  "title": "Big Square Grid",
 	  "grid_size": {
-		"rows": 9,
-		"cols": 9
+		"rows": 8,
+		"cols": 8
 	  },
-	  "time_limit_seconds": 35,
-	  "level_goals": {
-		"0": 60,
-		"1": 60,
-		"2": 60,
-		"3": 60,
-		"4": 60
-	  },
-	  "colors_array": [
-		"#4DE0E0",
-		"#FFB34D",
-		"#52E095",
-		"#FF80BF",
-		"#FFEB4D"
-	  ],
-	  "description": "The grid expands to 9x9 with five colors. The time limit is slightly extended to give you more room to think."
-	},
-	{
-	  "level_number": 16,
-	  "title": "Blue Tiles",
-	  "grid_size": {
-		"rows": 9,
-		"cols": 9
-	  },
-	  "time_limit_seconds": 30,
+	  "time_limit_seconds": 40,
 	  "level_goals": {
 		"0": 70,
 		"1": 70,
 		"2": 70,
 		"3": 70,
-		"4": 70,
-		"5": 70
+		"4": 70
 	  },
 	  "colors_array": [
 		"#4DE0E0",
 		"#FFB34D",
 		"#52E095",
 		"#FF80BF",
-		"#FFEB4D",
-		"#4D95FF"
+		"#FFEB4D"
 	  ],
-	  "description": "A new color, Blue, is added. The goals have been increased and the time limit is tighter. You'll need to be fast and strategic."
+	  "description": "A new color, **Yellow**, is introduced on a big 8x8 grid with a tight time limit and high goals."
 	},
 	{
-	  "level_number": 17,
-	  "title": "Red Alert!",
+	  "level_number": 13,
+	  "title": "Nightmare IV - Blue Funk",
 	  "grid_size": {
-		"rows": 10,
-		"cols": 9
+		"rows": 8,
+		"cols": 8
 	  },
 	  "time_limit_seconds": 30,
 	  "level_goals": {
@@ -353,8 +262,7 @@
 		"2": 80,
 		"3": 80,
 		"4": 80,
-		"5": 80,
-		"6": 80
+		"5": 80
 	  },
 	  "colors_array": [
 		"#4DE0E0",
@@ -362,19 +270,72 @@
 		"#52E095",
 		"#FF80BF",
 		"#FFEB4D",
-		"#4D95FF",
-		"#FF604D"
+		"#7BA7D9"
 	  ],
-	  "description": "A tall grid with the color Red! The goals are high, and the grid is bigger. Don't be fooled, this is a tough one."
+	  "description": "A new color, **Blue**, is added. The goals are high, and the grid is at its maximum size."
 	},
 	{
-	  "level_number": 18,
-	  "title": "Purple Patch",
+	  "level_number": 14,
+	  "title": "Relief - The Challenge Fades",
 	  "grid_size": {
-		"rows": 10,
-		"cols": 10
+		"rows": 7,
+		"cols": 7
 	  },
-	  "time_limit_seconds": 25,
+	  "time_limit_seconds": 40,
+	  "level_goals": {
+		"0": 60,
+		"1": 60,
+		"2": 60,
+		"3": 60,
+		"4": 60,
+		"5": 60
+	  },
+	  "colors_array": [
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095",
+		"#FF80BF",
+		"#FFEB4D",
+		"#7BA7D9"
+	  ],
+	  "description": "A slightly easier level to give you a chance to recover. The grid is smaller, and the time limit is more forgiving."
+	},
+	{
+	  "level_number": 15,
+	  "title": "The Big Seven",
+	  "grid_size": {
+		"rows": 8,
+		"cols": 8
+	  },
+	  "time_limit_seconds": 35,
+	  "level_goals": {
+		"0": 85,
+		"1": 85,
+		"2": 85,
+		"3": 85,
+		"4": 85,
+		"5": 85,
+		"6": 85
+	  },
+	  "colors_array": [
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095",
+		"#FF80BF",
+		"#FFEB4D",
+		"#7BA7D9",
+		"#E08B7A"
+	  ],
+	  "description": "All seven colors are on the board with a large 8x8 grid. Goals and time are demanding, requiring quick thinking."
+	},
+	{
+	  "level_number": 16,
+	  "title": "Clash of Colors",
+	  "grid_size": {
+		"rows": 7,
+		"cols": 8
+	  },
+	  "time_limit_seconds": 30,
 	  "level_goals": {
 		"0": 90,
 		"1": 90,
@@ -382,8 +343,7 @@
 		"3": 90,
 		"4": 90,
 		"5": 90,
-		"6": 90,
-		"7": 90
+		"6": 90
 	  },
 	  "colors_array": [
 		"#4DE0E0",
@@ -391,20 +351,19 @@
 		"#52E095",
 		"#FF80BF",
 		"#FFEB4D",
-		"#4D95FF",
-		"#FF604D",
-		"#954DFF"
+		"#7BA7D9",
+		"#E08B7A"
 	  ],
-	  "description": "Introducing the final color, Purple, and a new shape, the diamond! The grid is now a perfect 10x10 square with all available colors and shapes."
+	  "description": "A chaotic level on a new 7x8 grid where you'll need to focus and eliminate colors efficiently. The time limit is even tighter."
 	},
 	{
-	  "level_number": 19,
-	  "title": "The Gauntlet",
+	  "level_number": 17,
+	  "title": "Nightmare V - The Final Ascent",
 	  "grid_size": {
-		"rows": 10,
-		"cols": 10
+		"rows": 8,
+		"cols": 6
 	  },
-	  "time_limit_seconds": 22,
+	  "time_limit_seconds": 25,
 	  "level_goals": {
 		"0": 95,
 		"1": 95,
@@ -412,8 +371,7 @@
 		"3": 95,
 		"4": 95,
 		"5": 95,
-		"6": 95,
-		"7": 95
+		"6": 95
 	  },
 	  "colors_array": [
 		"#4DE0E0",
@@ -421,29 +379,83 @@
 		"#52E095",
 		"#FF80BF",
 		"#FFEB4D",
-		"#4D95FF",
-		"#FF604D",
-		"#954DFF"
+		"#7BA7D9",
+		"#E08B7A"
 	  ],
-	  "description": "You're on the brink of victory. This level sharpens your skills for the ultimate test ahead. It's a final tune-up before the grand finale."
+	  "description": "This is a grueling challenge on a tall, narrow 8x6 grid with maximum goals and a very short time limit."
+	},
+	{
+	  "level_number": 18,
+	  "title": "Relief - Peaceful Pause",
+	  "grid_size": {
+		"rows": 6,
+		"cols": 7
+	  },
+	  "time_limit_seconds": 40,
+	  "level_goals": {
+		"0": 70,
+		"1": 70,
+		"2": 70,
+		"3": 70,
+		"4": 70,
+		"5": 70,
+		"6": 70
+	  },
+	  "colors_array": [
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095",
+		"#FF80BF",
+		"#FFEB4D",
+		"#7BA7D9",
+		"#E08B7A"
+	  ],
+	  "description": "A final chance to decompress on a wide 6x7 grid. The grid is smaller and the time limit is extended."
+	},
+	{
+	  "level_number": 19,
+	  "title": "The Last Push",
+	  "grid_size": {
+		"rows": 7,
+		"cols": 8
+	  },
+	  "time_limit_seconds": 35,
+	  "level_goals": {
+		"0": 90,
+		"1": 90,
+		"2": 90,
+		"3": 90,
+		"4": 90,
+		"5": 90,
+		"6": 90
+	  },
+	  "colors_array": [
+		"#4DE0E0",
+		"#FFB34D",
+		"#52E095",
+		"#FF80BF",
+		"#FFEB4D",
+		"#7BA7D9",
+		"#E08B7A"
+	  ],
+	  "description": "You're on the brink of victory. This level is a final tune-up for the grand finale. The goals are high, but the time is manageable."
 	},
 	{
 	  "level_number": 20,
 	  "title": "The Grand Finale",
 	  "grid_size": {
-		"rows": 10,
-		"cols": 10
+		"rows": 8,
+		"cols": 8
 	  },
-	  "time_limit_seconds": 20,
+	  "time_limit_seconds": 25,
 	  "level_goals": {
-		"0": 100,
-		"1": 100,
-		"2": 100,
-		"3": 100,
-		"4": 100,
-		"5": 100,
-		"6": 100,
-		"7": 100
+		"0": 120,
+		"1": 120,
+		"2": 120,
+		"3": 120,
+		"4": 120,
+		"5": 120,
+		"6": 120
 	  },
 	  "colors_array": [
 		"#4DE0E0",
@@ -451,11 +463,10 @@
 		"#52E095",
 		"#FF80BF",
 		"#FFEB4D",
-		"#4D95FF",
-		"#FF604D",
-		"#954DFF"
+		"#7BA7D9",
+		"#E08B7A"
 	  ],
-	  "description": "This is the final test of your skills. With a huge grid, all colors and shapes, you'll need to master every aspect of the game to beat the clock and complete your quest."
+	  "description": "This is the final test of your skills. With a huge grid and all seven colors, you'll need to master every aspect of the game to beat the clock and complete your quest."
 	}
   ]
 }

@@ -23,13 +23,14 @@ uniform float glow_strength : hint_range(0.0, 1.0) = 0.5;
 uniform vec4 glow_color : source_color = vec4(1.0, 1.0, 1.0, 1.0);
 
 // Color bomb properties
-uniform bool rainbow_effect = false;
-uniform float rainbow_speed : hint_range(0.5, 3.0) = 1.5;
+uniform bool fire_effect = false;
+uniform float fire_speed : hint_range(0.5, 3.0) = 1.5;
 
-// Star properties
-uniform bool star_effect = false;
-uniform float sparkle_intensity : hint_range(0.0, 1.0) = 0.6;
-uniform float sparkle_frequency : hint_range(1.0, 10.0) = 4.0;
+// Lightning properties
+uniform bool lightning_effect = false;
+uniform float lightning_intensity : hint_range(0.0, 1.0) = 0.7;
+uniform float lightning_speed : hint_range(0.5, 5.0) = 3.0;
+uniform vec4 lightning_color : source_color = vec4(1.0, 1.0, 0.8, 1.0);
 
 // Fish properties
 uniform bool fish_effect = false;
@@ -74,7 +75,7 @@ void fragment() {
     }
 
     // Striped effects
-    if (stripe_horizontal || stripe_vertical) {
+        if (stripe_horizontal || stripe_vertical) {
         float stripe_pos;
         if (stripe_horizontal) {
             stripe_pos = UV.y + sin(time * stripe_speed) * 0.1;
@@ -88,6 +89,8 @@ void fragment() {
         final_color = mix(final_color, stripe_color, stripe_pattern * 0.6);
     }
 
+
+
     // Wrapped candy effect - border glow
     if (is_wrapped) {
         float border_dist = min(min(UV.x, 1.0 - UV.x), min(UV.y, 1.0 - UV.y));
@@ -100,28 +103,84 @@ void fragment() {
         final_color.rgb = mix(glow_color.rgb, final_color.rgb, 1.0 - border_glow);
     }
 
-    // Rainbow effect for color bomb
-    if (rainbow_effect) {
-        float hue = fract(time * rainbow_speed * 0.1 + UV.x + UV.y);
-        vec3 rainbow = hsv2rgb(vec3(hue, 0.8, 1.0));
+     // Fire effect for color bomb
+    if (fire_effect) {
+        // Simple flickering fire effect
+        float fire_noise = random(UV + time * fire_speed * 0.1);
 
-        float pulse = sin(time * pulse_speed) * 0.3 + 0.7;
-        final_color.rgb = mix(final_color.rgb, rainbow, 0.4 * pulse);
+        // Create upward flame movement - simpler approach
+        float flame_y = 1.0 - UV.y; // Bottom = 1.0, top = 0.0
+        float flame_flicker = sin(UV.x * 10.0 + time * fire_speed * 3.0) * 0.3 + 0.7;
+
+        // Flame intensity stronger at bottom, weaker at top
+        float flame_intensity = flame_y * flame_flicker * fire_noise;
+        flame_intensity = smoothstep(0.2, 0.8, flame_intensity);
+
+        // Fire colors: orange-red base with yellow highlights
+        vec3 fire_tint = vec3(1.0, 0.4 + flame_intensity * 0.6, 0.1);
+
+        // Apply fire effect while preserving base color
+        final_color.rgb = mix(final_color.rgb, final_color.rgb * fire_tint, flame_intensity * 0.5);
+
+        // Add brightness
+        final_color.rgb += final_color.rgb * flame_intensity * 0.3;
+
+        // Fire particles - floating embers
+        vec2 particle_uv = UV * 8.0; // Create grid for particles
+        vec2 particle_id = floor(particle_uv);
+        vec2 particle_pos = fract(particle_uv);
+
+        // Each particle has unique movement
+        float particle_time = time * fire_speed + random(particle_id) * 6.28;
+        vec2 particle_offset = vec2(
+            sin(particle_time * 0.8) * 0.3,
+            -fract(particle_time * 0.2) // Particles rise upward
+        );
+
+        // Particle position with movement
+        vec2 final_particle_pos = particle_pos + particle_offset;
+        float particle_dist = distance(final_particle_pos, vec2(0.5));
+
+        // Create particle if it's within bounds and close to center
+        if (final_particle_pos.x >= 0.0 && final_particle_pos.x <= 1.0 &&
+            final_particle_pos.y >= 0.0 && final_particle_pos.y <= 1.0) {
+
+            float particle = smoothstep(0.3, 0.1, particle_dist);
+
+            // Particles fade as they rise
+            float particle_life = 1.0 - fract(particle_time * 0.2);
+            particle *= particle_life;
+
+            // Add particle glow
+            if (particle > 0.0) {
+                vec3 ember_color = vec3(1.0, 0.6, 0.2) * base_color.rgb;
+                final_color.rgb += ember_color * particle * 0.4;
+            }
+        }
     }
 
-    // Star effect - sparkles
-    if (star_effect) {
-        vec2 sparkle_uv = UV * sparkle_frequency;
-        float sparkle = random(floor(sparkle_uv) + sin(time * 2.0));
-        sparkle *= random(floor(sparkle_uv * 1.3) + cos(time * 1.7));
+    // Lightning effect - electric arcs (replaces star effect)
+    if (lightning_effect) {
+        // Create multiple lightning paths
+        float lightning = 0.0;
 
-        if (sparkle > 0.85) {
-            float sparkle_brightness = smoothstep(0.85, 1.0, sparkle) * sparkle_intensity;
-            final_color.rgb += vec3(1.0, 1.0, 0.8) * sparkle_brightness;
-        }
+        // Main diagonal lightning bolt - thicker and more visible
+        float bolt1 = abs(UV.y - (UV.x + sin(time * lightning_speed * 0.5 + UV.x * 8.0) * 0.1)); // Reduced from lightning_speed to lightning_speed * 0.5
+        bolt1 = smoothstep(0.06, 0.0, bolt1); // Increased from 0.02 to 0.06
 
-        // Add golden tint
-        final_color.rgb = mix(final_color.rgb, vec3(1.0, 0.9, 0.3), 0.2);
+        // Secondary horizontal arc - thicker
+        float bolt2 = abs(UV.x - (0.5 + sin(time * lightning_speed * 0.6 + UV.y * 12.0) * 0.3)); // Reduced from lightning_speed * 1.3 to lightning_speed * 0.6
+        bolt2 = smoothstep(0.08, 0.0, bolt2); // Increased from 0.03 to 0.08
+
+        // Flickering intensity - slower flicker
+        float flicker = sin(time * lightning_speed * 1.0) * 0.3 + 0.7; // Reduced from lightning_speed * 2.0 to lightning_speed * 1.0
+        lightning = max(bolt1, bolt2 * 0.8) * flicker; // Increased bolt2 weight from 0.6 to 0.8
+
+        // Add electric glow - more intense
+        final_color.rgb = mix(final_color.rgb, lightning_color.rgb * base_color.rgb, lightning * lightning_intensity);
+
+        // Add brightness spikes - more visible
+        final_color.rgb += vec3(lightning * 0.5); // Increased from 0.3 to 0.5
     }
 
     // Fish effect - wavy distortion
@@ -130,11 +189,12 @@ void fragment() {
         wave_uv.x += sin(UV.y * wave_frequency + time * 3.0) * wave_strength * 0.1;
         wave_uv.y += cos(UV.x * wave_frequency + time * 2.5) * wave_strength * 0.05;
 
-        vec4 wave_color = texture(TEXTURE, wave_uv) * base_color;
-        final_color = mix(final_color, wave_color, 0.7);
+        vec4 wave_texture = texture(TEXTURE, wave_uv);
+        final_color = wave_texture * base_color;
 
-        // Add cyan tint
-        final_color.rgb = mix(final_color.rgb, vec3(0.3, 0.8, 1.0), 0.15);
+        // Add aqua-like shimmer effect while preserving base color
+        float shimmer = sin(time * 3.0 + UV.x * 10.0) * 0.5 + 0.5;
+        final_color.rgb = mix(final_color.rgb, final_color.rgb * vec3(0.8, 1.0, 1.2), shimmer * 0.2);
     }
 
     // Shatter removal effect
