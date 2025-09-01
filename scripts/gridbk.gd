@@ -2,7 +2,7 @@
 
 extends Node2D
 
-class_name GameManager_bk
+class_name GameManager2
 
 
 # --- Enhanced Power-up Constants ---
@@ -124,6 +124,7 @@ func _preload_powerup_textures():
 	}
 	debug_print("Loaded " + str(powerup_textures.size()) + " power-up textures")
 
+const Missile = preload("res://scene/missile.tscn")
 # --- Powerup Grid Generation System ---
 func configure_initial_powerups(powerup_counts: Dictionary):
 	"""
@@ -618,13 +619,13 @@ func _ready():
 	_preload_powerup_textures()
 	
 	# Test powerup creation
-	add_test_powerups()
+	#add_test_powerups()
 	
 	# When player buys powerups from shop:
 	#var purchased = {POWERUP_BOMB_TYPE: 3, POWERUP_WRAPPED_TYPE: 1}
 	#add_shop_powerups(purchased)
 	# Add 2 lightning powerups to the next level:
-	#add_single_powerup(POWERUP_LIGHTNING_TYPE, 2)
+	add_single_powerup(POWERUP_COLOR_BOMB_TYPE, 5)
 	
 	# Start with predefined level (deferred to ensure everything is ready)
 	call_deferred("start_level", current_level_number)
@@ -1830,9 +1831,44 @@ func _trigger_wrapped_second_explosion(x: int, y: int):
 	if second_to_remove.size() > 0:
 		highlight_and_remove(second_to_remove.keys(), true)
 
+#func _trigger_color_bomb_effect(x: int, y: int, to_remove: Dictionary):
+	#"""Remove all tiles of the most common color on the board"""
+	#debug_print("Triggering color bomb effect")
+	#
+	## Count colors on the board
+	#var color_counts = {}
+	#for grid_x in range(grid_width):
+		#for grid_y in range(grid_height):
+			#var item = _safe_get_grid_item(grid_x, grid_y)
+			#if item != null:
+				#var base_type = _get_base_type(item.item_type)
+				#if not color_counts.has(base_type):
+					#color_counts[base_type] = 0
+				#color_counts[base_type] += 1
+	#
+	## Find most common color
+	#var target_color = -1
+	#var max_count = 0
+	#for color_type in color_counts.keys():
+		#if color_counts[color_type] > max_count:
+			#max_count = color_counts[color_type]
+			#target_color = color_type
+	#
+	## Remove all tiles of that color
+	#if target_color >= 0:
+		#for grid_x in range(grid_width):
+			#for grid_y in range(grid_height):
+				#var item = _safe_get_grid_item(grid_x, grid_y)
+				#if item != null and _get_base_type(item.item_type) == target_color:
+					#var tile_pos = Vector2(grid_x, grid_y)
+					#to_remove[tile_pos] = true
+
 func _trigger_color_bomb_effect(x: int, y: int, to_remove: Dictionary):
 	"""Remove all tiles of the most common color on the board"""
 	debug_print("Triggering color bomb effect")
+	
+	# Get the color bomb world position
+	var bomb_world_pos = _grid_to_world_position(x, y)
 	
 	# Count colors on the board
 	var color_counts = {}
@@ -1853,14 +1889,58 @@ func _trigger_color_bomb_effect(x: int, y: int, to_remove: Dictionary):
 			max_count = color_counts[color_type]
 			target_color = color_type
 	
-	# Remove all tiles of that color
+	# Collect target positions and launch missiles
 	if target_color >= 0:
+		var target_positions = []
+		
+		# First pass: collect all target positions
 		for grid_x in range(grid_width):
 			for grid_y in range(grid_height):
 				var item = _safe_get_grid_item(grid_x, grid_y)
 				if item != null and _get_base_type(item.item_type) == target_color:
-					var tile_pos = Vector2(grid_x, grid_y)
-					to_remove[tile_pos] = true
+					target_positions.append(Vector2(grid_x, grid_y))
+		
+		# Launch missiles with staggered timing
+		for i in range(target_positions.size()):
+			var grid_pos = target_positions[i]
+			var target_world_pos = _grid_to_world_position(int(grid_pos.x), int(grid_pos.y))
+			
+			# Create missile after small delay for staggered effect
+			_launch_missile_delayed(bomb_world_pos, target_world_pos, grid_pos, target_color, to_remove, i * 0.05)
+
+func _launch_missile_delayed(start_pos: Vector2, target_pos: Vector2, grid_pos: Vector2, color_type: int, to_remove: Dictionary, delay: float):
+	"""Launch a single missile after delay"""
+	await get_tree().create_timer(delay).timeout
+	
+	# Load and instantiate missile
+	var missile_scene = Missile  # Adjust path to your Missile.tscn
+	var missile = missile_scene.instantiate()
+	add_child(missile)
+	missile.setup_missile(colors[color_type])
+	missile.fire_with_arc(start_pos, target_pos, 0.6, 25.0)
+	
+	# When missile hits, mark tile for removal
+	missile.target_reached.connect(func(target_position):
+		to_remove[grid_pos] = true
+		debug_print("Missile hit tile at: " + str(grid_pos))
+	)
+
+func _grid_to_world_position(grid_x: int, grid_y: int) -> Vector2:
+	"""Convert grid coordinates to world position - reuses your positioning logic"""
+	var extra_offset_x = 0.0
+	var extra_offset_y = 0.0
+	if use_shelf_gaps:
+		extra_offset_x = (grid_x / 3.0) * shelf_gap_x
+		extra_offset_y = (grid_y / 1.0) * shelf_gap_y
+	else:
+		extra_offset_x = grid_x * shelf_gap_x
+		extra_offset_y = grid_y * shelf_gap_y
+	
+	return Vector2(
+		grid_x * cell_size + cell_size / 2 + extra_offset_x,
+		grid_y * cell_size + cell_size / 2 + extra_offset_y
+	)
+
 
 func _trigger_lightning_effect(x: int, y: int, to_remove: Dictionary):
 	"""Remove tiles in diagonal directions"""

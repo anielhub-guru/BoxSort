@@ -1,11 +1,7 @@
 # grid.gd
 
 extends Node2D
-
 class_name GameManager
-
-
-# --- Enhanced Power-up Constants ---
 const POWERUP_BOMB_TYPE = 100      # 3x3 explosion (existing)
 const POWERUP_STRIPED_H_TYPE = 200 # Horizontal striped candy
 const POWERUP_STRIPED_V_TYPE = 300 # Vertical striped candy
@@ -13,19 +9,16 @@ const POWERUP_WRAPPED_TYPE = 400   # Wrapped candy (3x3 + second explosion)
 const POWERUP_COLOR_BOMB_TYPE = 500 # Color bomb (removes all of one color)
 const POWERUP_LIGHTNING_TYPE = 600      # Star candy (diagonal removal)
 const POWERUP_FISH_TYPE = 700      # Fish candy (targets random tiles)
-
 # Power-up creation thresholds
 const STRIPED_MATCH_COUNT = 4      # 4 in a line creates striped
 const WRAPPED_MATCH_COUNT = 5      # L or T shape creates wrapped
 const LIGHTNING_MATCH_COUNT = 5         # 5 in a line creates star (was 6)
 const COLOR_BOMB_MATCH_COUNT = 6   # 6 in a line creates color bomb (was 5)
-
 const DEBUG_MODE = true # Change to false for release
 const MAX_CASCADE_ROUNDS = 10 
 const ASYNC_TIMEOUT = 5.0
-
+const Missile = preload("res://scene/missile.tscn")
 # --- Game Board Properties ---
-# These variables control the size and layout of the game grid.
 var grid_width = 6
 var grid_height = 6
 var cell_size = 90
@@ -40,13 +33,9 @@ var is_matching_in_progress = false
 var powerup_textures: Dictionary = {}
 var allow_initial_matches = false  # allow initaial matches for testing
 var initial_powerup_config = {} # Dictionary to store powerup placement config
-
 # game audio
 @onready var tile_match_audio = $"../TileMatchAudio" 
-
-
 # --- Game State and Data ---
-# Stores the current state of the game board and game-related information.
 var grid_data = [] # A 2D array to hold references to DraggableItem nodes
 var draggable_item_scene = preload("res://scene/DraggableItem.tscn")
 # Colors for the different item types in the game - CHANGED: Now dynamic based on level
@@ -61,26 +50,18 @@ var colors = [
 	Color8(149, 77, 255)    # Purple
 ]
 
-
 var _cached_matches = {}
 var _grid_hash = ""
-
-# --- Level Management System ---
 var current_level_number = 14
 var levels_data = {}
 var max_available_level = 1
 var _level_completion_processed = false
 var _game_initialized = false
-
-# --- Level Goal System ---
 var level_goals = {} # Dictionary to store goals for each color type (e.g., {0: 15, 1: 10})
 var level_progress = {} # Dictionary to track progress for each color type (e.g., {0: 5, 1: 3})
 var is_level_complete = false
 var score = 0 # tracks level specific points
 var total_score = 0 #tracks total run  points
-
-# --- Drag and Drop Variables ---
-# These variables manage the state of dragging and swapping items.
 var dragging = false
 var drag_start_pos = Vector2()
 var drag_offset = Vector2()
@@ -88,26 +69,16 @@ var dragged_item: Node2D = null
 var target_item: Node2D = null
 var start_x = 0
 var start_y = 0
-
-# --- Timer Variables ---
 var time_limit = 30.0 # Initial time limit for the level
 var time_left = 0.0
 var is_game_over = false
-
-# --- References to UI Elements ---
-# These variables will be assigned references to UI nodes at runtime.
 var time_label: Label
 var playerMsg_label: Label
 var goal_label: Label
 @export var bonus_time_per_match: float = 0.2 # Time added for each matched item
 var playerMsg_initial_position: Vector2
 var level_label: Label
-
-
-# New dictionary to hold a colored texture for each type
 var color_textures: Dictionary = {}
-
-# --- Processing State ---
 var is_processing_cascade = false # Prevents input during match cascades
 var _processing_bomb_effects = false
 
@@ -118,13 +89,12 @@ func _preload_powerup_textures():
 		POWERUP_STRIPED_H_TYPE: load("res://sprites/wave_right.svg"), #Removes all items in a horizontal line. It is created by matching four items in a line.
 		POWERUP_STRIPED_V_TYPE: load("res://sprites/wave_left.svg"), #Removes all items in a vertical line. It is created by matching four items in a line.
 		POWERUP_WRAPPED_TYPE: load("res://sprites/volcano.svg"), #Creates a 3x3 explosion and a second explosion afterwards. It is created by matching items in an L or T shape.
-		POWERUP_COLOR_BOMB_TYPE: load("res://sprites/rocket_barrage.svg"), # # Removes all items of the same color. It is created by matching six items in a line.
+		POWERUP_COLOR_BOMB_TYPE: load("res://sprites/rocket_barrage.svg"), # (bugged: should only remove tiles of color matched) Find the color with the most tiles then removes all items of that color. It is created by matching six items in a line.
 		POWERUP_LIGHTNING_TYPE: load("res://sprites/storm.svg"), # Removes all tiles in a diagonal direction. It is created by matching five items in a line.
 		POWERUP_FISH_TYPE: load("res://sprites/fish.svg") #Targets and removes random tiles on the board. It is created by matching seven items.
 	}
 	debug_print("Loaded " + str(powerup_textures.size()) + " power-up textures")
 
-# --- Powerup Grid Generation System ---
 func configure_initial_powerups(powerup_counts: Dictionary):
 	"""
 	Configure powerups to be placed during grid generation
@@ -138,7 +108,6 @@ func _generate_grid_with_powerups():
 	"""Enhanced grid generation that includes initial powerups"""
 	debug_print("Generating grid " + str(grid_width) + "x" + str(grid_height) + " with powerups...")
 	
-	# Ensure grid_data is properly initialized
 	grid_data.clear()
 	grid_data.resize(grid_width)
 	
@@ -147,14 +116,12 @@ func _generate_grid_with_powerups():
 	for x in range(grid_width):
 		for y in range(grid_height):
 			all_positions.append(Vector2(x, y))
-	
+
 	# Shuffle positions for random powerup placement
-	all_positions.shuffle()
-	
+	all_positions.shuffle()	
 	# Calculate powerup positions
 	var powerup_positions = {}
 	var position_index = 0
-	
 	for powerup_type in initial_powerup_config.keys():
 		var count = initial_powerup_config[powerup_type]
 		for i in range(count):
@@ -163,16 +130,13 @@ func _generate_grid_with_powerups():
 				powerup_positions[pos] = powerup_type
 				position_index += 1
 				debug_print("Scheduled " + str(powerup_type) + " powerup at (" + str(pos.x) + "," + str(pos.y) + ")")
-	
 	# Generate the grid
 	for x in range(grid_width):
 		grid_data[x] = []
 		grid_data[x].resize(grid_height)
 		
 		for y in range(grid_height):
-			# Initialize to null first
 			grid_data[x][y] = null
-			
 			var pos = Vector2(x, y)
 			var item_instance = null
 			
@@ -252,9 +216,6 @@ func _get_powerup_type(item_type):
 		return POWERUP_BOMB_TYPE
 	return 0
 
-
-
-
 func _get_base_type(item_type):
 	if _is_any_powerup(item_type):
 		var powerup_type = _get_powerup_type(item_type)
@@ -282,7 +243,6 @@ func _create_default_levels():
 func load_levels_data():
 	"""Load all levels data from the JSON file"""
 	debug_print("Loading levels data from res://levels.json")
-	
 	if not FileAccess.file_exists("res://levels.json"):
 		debug_print("ERROR: levels.json file not found at res://levels.json")
 		debug_print("Creating default level data...")
@@ -618,13 +578,13 @@ func _ready():
 	_preload_powerup_textures()
 	
 	# Test powerup creation
-	add_test_powerups()
+	#add_test_powerups()
 	
 	# When player buys powerups from shop:
 	#var purchased = {POWERUP_BOMB_TYPE: 3, POWERUP_WRAPPED_TYPE: 1}
 	#add_shop_powerups(purchased)
 	# Add 2 lightning powerups to the next level:
-	#add_single_powerup(POWERUP_LIGHTNING_TYPE, 2)
+	add_single_powerup(POWERUP_COLOR_BOMB_TYPE, 5)
 	
 	# Start with predefined level (deferred to ensure everything is ready)
 	call_deferred("start_level", current_level_number)
@@ -1212,10 +1172,6 @@ func _get_cell_center(x, y):
 		x * cell_size + cell_size / 2 + extra_offset_x,
 		y * cell_size + cell_size / 2 + extra_offset_y
 	)
-
-# -------------------------------
-# Level Goal System
-# -------------------------------
 
 
 # New function to create and store colored textures
@@ -1834,7 +1790,10 @@ func _trigger_color_bomb_effect(x: int, y: int, to_remove: Dictionary):
 	"""Remove all tiles of the most common color on the board"""
 	debug_print("Triggering color bomb effect")
 	
-	# Count colors on the board
+	# Get the color bomb world position
+	var bomb_world_pos = grid_to_world_position(x, y)
+	
+	# Count colors and find target color
 	var color_counts = {}
 	for grid_x in range(grid_width):
 		for grid_y in range(grid_height):
@@ -1845,7 +1804,6 @@ func _trigger_color_bomb_effect(x: int, y: int, to_remove: Dictionary):
 					color_counts[base_type] = 0
 				color_counts[base_type] += 1
 	
-	# Find most common color
 	var target_color = -1
 	var max_count = 0
 	for color_type in color_counts.keys():
@@ -1853,14 +1811,76 @@ func _trigger_color_bomb_effect(x: int, y: int, to_remove: Dictionary):
 			max_count = color_counts[color_type]
 			target_color = color_type
 	
-	# Remove all tiles of that color
 	if target_color >= 0:
+		# Collect all target positions
+		var target_positions = []
 		for grid_x in range(grid_width):
 			for grid_y in range(grid_height):
 				var item = _safe_get_grid_item(grid_x, grid_y)
 				if item != null and _get_base_type(item.item_type) == target_color:
-					var tile_pos = Vector2(grid_x, grid_y)
-					to_remove[tile_pos] = true
+					target_positions.append(Vector2(grid_x, grid_y))
+		
+		# Launch missiles AND animate tile removal with delay
+		var missile_task = await launch_synchronized_missiles(bomb_world_pos, target_positions, target_color, 0.5)
+		var removal_task = await highlight_and_remove(target_positions, true, 0.5) # Wait 0.5s before removal
+		
+		# Wait for both to complete
+		await missile_task
+		await removal_task
+		
+		# Mark all targets for removal (they're already visually removed)
+		for grid_pos in target_positions:
+			to_remove[grid_pos] = true
+
+func launch_synchronized_missiles(start_pos: Vector2, target_positions: Array, color_type: int, total_time: float):
+	"""Launch missiles instantly - fast straight-line animation"""
+	if target_positions.is_empty():
+		return
+	
+	var missile_scene = preload("res://scene/missile.tscn")
+	var animation_time = 0.5  # Fixed 0.5 second animation
+	
+	debug_print("Launching " + str(target_positions.size()) + " missiles instantly")
+	
+	# Launch all missiles instantly (no stagger)
+	for i in range(target_positions.size()):
+		var grid_pos = target_positions[i]
+		var target_world_pos = grid_to_world_position(int(grid_pos.x), int(grid_pos.y))
+		
+		# Create missile immediately
+		var missile = missile_scene.instantiate()
+		add_child(missile)
+		
+		# Setup missile color
+		if color_type < colors.size():
+			missile.setup_missile(colors[color_type])
+		else:
+			missile.setup_missile(Color.WHITE)
+		
+		# Fire missile with straight line movement
+		missile.fire(start_pos, target_world_pos, animation_time)
+	
+	# Wait for animation to complete
+	await get_tree().create_timer(animation_time + 0.1).timeout
+	debug_print("All color bomb missiles completed")
+
+
+func grid_to_world_position(grid_x: int, grid_y: int) -> Vector2:
+	"""Convert grid coordinates to world position"""
+	var extra_offset_x = 0.0
+	var extra_offset_y = 0.0
+	
+	if use_shelf_gaps:
+		extra_offset_x = (grid_x / 3.0) * shelf_gap_x
+		extra_offset_y = (grid_y / 1.0) * shelf_gap_y
+	else:
+		extra_offset_x = grid_x * shelf_gap_x
+		extra_offset_y = grid_y * shelf_gap_y
+	
+	return Vector2(
+		grid_x * cell_size + cell_size / 2 + extra_offset_x,
+		grid_y * cell_size + cell_size / 2 + extra_offset_y
+	)
 
 func _trigger_lightning_effect(x: int, y: int, to_remove: Dictionary):
 	"""Remove tiles in diagonal directions"""
@@ -1931,12 +1951,28 @@ func play_match_audio(start_time: float, duration: float):
 	tile_match_audio.stop()
 
 
-
-func highlight_and_remove(matched_positions, is_bomb_effect = false):
-	debug_print("Highlighting and removing " + str(matched_positions.size()) + " tiles.")
+func highlight_and_remove(matched_positions, is_bomb_effect = false, delay_time: float = 0.0):
+	"""Highlight and remove tiles with optional delay for missile synchronization"""
+	debug_print("Highlighting and removing " + str(matched_positions.size()) + " tiles with " + str(delay_time) + "s delay.")
 	
 	_track_goal_progress(matched_positions)
 	add_score(matched_positions.size())
+	
+	# Immediate highlighting (no removal yet if there's a delay)
+	if delay_time > 0.0:
+		# Just highlight tiles while missiles fly
+		for pos in matched_positions:
+			var gx = int(pos.x)
+			var gy = int(pos.y)
+			var item = _safe_get_grid_item(gx, gy)
+			if item != null and is_instance_valid(item):
+				var sprite = item.get_node_or_null("Sprite2D")
+				if sprite != null:
+					sprite.modulate = Color(1, 1, 0, 0.8)  # Highlighted but visible
+		
+		# Wait for missiles to hit
+		await get_tree().create_timer(delay_time).timeout
+	
 	# Visual effects based on effect type
 	if is_bomb_effect:
 		var tween = create_tween().set_parallel(true)
@@ -1968,6 +2004,7 @@ func highlight_and_remove(matched_positions, is_bomb_effect = false):
 						var removal_tween = create_tween()
 						removal_tween.tween_property(sprite.material,"shader_parameter/removal_progress", 1.0, 0.3)
 		await get_tree().create_timer(0.2).timeout
+	
 	# Remove items
 	for pos in matched_positions:
 		var gx = int(pos.x)
@@ -2333,18 +2370,6 @@ func _find_all_matches_in_grid() -> Dictionary:
 	return matches
 
 	
-	
-# This new function calls your existing _process_match
-#func _process_found_matches(matches: Dictionary):
-	#var to_remove = {}
-	#var new_bombs_to_create = {}
-	#
-	#for pos in matches.keys():
-		#var x = int(pos.x)
-		#var y = int(pos.y)
-		#_process_match(x, y, "timed", 3, to_remove, new_bombs_to_create)
-	#
-	#_handle_cascade()
 
 func _process_found_matches(matches: Dictionary):
 	"""Process the matches found by the timed system"""

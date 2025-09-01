@@ -2,8 +2,8 @@
 
 [ext_resource type="FontFile" uid="uid://bqsgikbx1kjqx" path="res://font/Syne-Bold.ttf" id="1_hy1te"]
 [ext_resource type="Script" uid="uid://0x05bpcfkbif" path="res://scripts/game_manager.gd" id="1_yyxvu"]
-[ext_resource type="PackedScene" uid="uid://dxrm6xngl0n77" path="res://images/scene/level_goal_display.tscn" id="2_yyxvu"]
-[ext_resource type="PackedScene" uid="uid://pg3fayeowjo" path="res://images/scene/grid.tscn" id="3_05tyy"]
+[ext_resource type="PackedScene" uid="uid://dxrm6xngl0n77" path="res://scene/level_goal_display.tscn" id="2_yyxvu"]
+[ext_resource type="PackedScene" uid="uid://pg3fayeowjo" path="res://scene/grid.tscn" id="3_05tyy"]
 [ext_resource type="Texture2D" uid="uid://bgnmqteoydy1h" path="res://images/treeplain_bg.png" id="4_fi3ik"]
 [ext_resource type="AudioStream" uid="uid://bfrxel50mjv4" path="res://audio/MKT_gameplay1.mp3" id="5_re6s4"]
 

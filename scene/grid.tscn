@@ -33,6 +33,7 @@ autostart = true
 
 [node name="MatchTimer" type="Timer" parent="."]
 wait_time = 5.0
+autostart = true
 
 [connection signal="timeout" from="Timer" to="Node2D" method="_on_timer_timeout"]
 [connection signal="timeout" from="MatchTimer" to="Node2D" method="_on_match_timer_timeout"]
