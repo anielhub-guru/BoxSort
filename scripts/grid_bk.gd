@@ -2,7 +2,27 @@
 
 extends Node2D
 
-class_name GameManager2
+class_name GameManager_bk
+
+
+# --- Enhanced Power-up Constants ---
+const POWERUP_BOMB_TYPE = 100      # 3x3 explosion (existing)
+const POWERUP_STRIPED_H_TYPE = 200 # Horizontal striped candy
+const POWERUP_STRIPED_V_TYPE = 300 # Vertical striped candy
+const POWERUP_WRAPPED_TYPE = 400   # Wrapped candy (3x3 + second explosion)
+const POWERUP_COLOR_BOMB_TYPE = 500 # Color bomb (removes all of one color)
+const POWERUP_LIGHTNING_TYPE = 600      # Star candy (diagonal removal)
+const POWERUP_FISH_TYPE = 700      # Fish candy (targets random tiles)
+
+# Power-up creation thresholds
+const STRIPED_MATCH_COUNT = 4      # 4 in a line creates striped
+const WRAPPED_MATCH_COUNT = 5      # L or T shape creates wrapped
+const LIGHTNING_MATCH_COUNT = 5         # 5 in a line creates star (was 6)
+const COLOR_BOMB_MATCH_COUNT = 6   # 6 in a line creates color bomb (was 5)
+
+const DEBUG_MODE = true # Change to false for release
+const MAX_CASCADE_ROUNDS = 10 
+const ASYNC_TIMEOUT = 5.0
 
 # --- Game Board Properties ---
 # These variables control the size and layout of the game grid.
@@ -16,80 +36,37 @@ var padding = 60
 var next_level_btn
 var restart_level_btn
 var refill_in_progress = false
+var is_matching_in_progress = false
+var powerup_textures: Dictionary = {}
+var allow_initial_matches = false  # allow initaial matches for testing
+var initial_powerup_config = {} # Dictionary to store powerup placement config
 
 # game audio
 @onready var tile_match_audio = $"../TileMatchAudio" 
+
 
 # --- Game State and Data ---
 # Stores the current state of the game board and game-related information.
 var grid_data = [] # A 2D array to hold references to DraggableItem nodes
 var draggable_item_scene = preload("res://scene/DraggableItem.tscn")
-# Colors for the different item types in the game.
-const colors = [
-	Color8(77, 255, 255), # Cyan
-	Color8(255, 179, 77), # Orange
-	Color8(82, 224, 149) # Green
+# Colors for the different item types in the game - CHANGED: Now dynamic based on level
+var colors = [
+	Color8(77, 255, 255),   # Cyan
+	Color8(255, 179, 77),   # Orange
+	Color8(82, 224, 149),   # Green
+	Color8(255, 128, 191),  # Magenta
+	Color8(255, 235, 77),   # Yellow
+	Color8(77, 149, 255),   # Blue
+	Color8(255, 96, 77),    # Red
+	Color8(149, 77, 255)    # Purple
 ]
 
 
-# --- Enhanced Power-up Constants ---
-const BOMB_MATCH_COUNT = 4 # Number of matching items to create a bomb
-const POWERUP_BOMB_TYPE = 100      # 3x3 explosion (existing)
-const POWERUP_STRIPED_H_TYPE = 200 # Horizontal striped candy
-const POWERUP_STRIPED_V_TYPE = 300 # Vertical striped candy
-const POWERUP_WRAPPED_TYPE = 400   # Wrapped candy (3x3 + second explosion)
-const POWERUP_COLOR_BOMB_TYPE = 500 # Color bomb (removes all of one color)
-const POWERUP_STAR_TYPE = 600      # Star candy (diagonal removal)
-const POWERUP_FISH_TYPE = 700      # Fish candy (targets random tiles)
-
-# Power-up creation thresholds
-const STRIPED_MATCH_COUNT = 4      # 4 in a line creates striped
-const WRAPPED_MATCH_COUNT = 5      # L or T shape creates wrapped
-const COLOR_BOMB_MATCH_COUNT = 5   # 5 in a line creates color bomb
-const STAR_MATCH_COUNT = 6         # 6 in a line creates star
-const FISH_MATCH_COUNT = 7         # 7 matches creates fish
-
-
-# --- Utility Functions for Item Types --- May need to delete
-func _is_powerup_bomb(item_type):
-	return item_type >= POWERUP_BOMB_TYPE
-
-
-# --- Enhanced Utility Functions ---
-func _is_any_powerup(item_type):
-	return item_type >= POWERUP_BOMB_TYPE
-
-func _get_powerup_type(item_type):
-	if item_type >= POWERUP_FISH_TYPE:
-		return POWERUP_FISH_TYPE
-	elif item_type >= POWERUP_STAR_TYPE:
-		return POWERUP_STAR_TYPE
-	elif item_type >= POWERUP_COLOR_BOMB_TYPE:
-		return POWERUP_COLOR_BOMB_TYPE
-	elif item_type >= POWERUP_WRAPPED_TYPE:
-		return POWERUP_WRAPPED_TYPE
-	elif item_type >= POWERUP_STRIPED_V_TYPE:
-		return POWERUP_STRIPED_V_TYPE
-	elif item_type >= POWERUP_STRIPED_H_TYPE:
-		return POWERUP_STRIPED_H_TYPE
-	elif item_type >= POWERUP_BOMB_TYPE:
-		return POWERUP_BOMB_TYPE
-	return 0
-
-func _get_base_type(item_type):
-	if _is_any_powerup(item_type):
-		var powerup_type = _get_powerup_type(item_type)
-		return item_type - powerup_type
-	return item_type
-
-const DEBUG_MODE = true # Change to false for release
-const MAX_CASCADE_ROUNDS = 10 
-const ASYNC_TIMEOUT = 5.0
 var _cached_matches = {}
 var _grid_hash = ""
 
 # --- Level Management System ---
-var current_level_number = 1
+var current_level_number = 14
 var levels_data = {}
 var max_available_level = 1
 var _level_completion_processed = false
@@ -117,8 +94,6 @@ var time_limit = 30.0 # Initial time limit for the level
 var time_left = 0.0
 var is_game_over = false
 
-
-
 # --- References to UI Elements ---
 # These variables will be assigned references to UI nodes at runtime.
 var time_label: Label
@@ -136,6 +111,155 @@ var color_textures: Dictionary = {}
 var is_processing_cascade = false # Prevents input during match cascades
 var _processing_bomb_effects = false
 
+func _preload_powerup_textures():
+	"""Preload all power-up sprite textures"""
+	powerup_textures = {
+		POWERUP_BOMB_TYPE: load("res://sprites/tnt.svg"), #Creates a 3x3 explosion. It is created by matching four items in a line
+		POWERUP_STRIPED_H_TYPE: load("res://sprites/wave_right.svg"), #Removes all items in a horizontal line. It is created by matching four items in a line.
+		POWERUP_STRIPED_V_TYPE: load("res://sprites/wave_left.svg"), #Removes all items in a vertical line. It is created by matching four items in a line.
+		POWERUP_WRAPPED_TYPE: load("res://sprites/volcano.svg"), #Creates a 3x3 explosion and a second explosion afterwards. It is created by matching items in an L or T shape.
+		POWERUP_COLOR_BOMB_TYPE: load("res://sprites/rocket_barrage.svg"), # # Removes all items of the same color. It is created by matching six items in a line.
+		POWERUP_LIGHTNING_TYPE: load("res://sprites/storm.svg"), # Removes all tiles in a diagonal direction. It is created by matching five items in a line.
+		POWERUP_FISH_TYPE: load("res://sprites/fish.svg") #Targets and removes random tiles on the board. It is created by matching seven items.
+	}
+	debug_print("Loaded " + str(powerup_textures.size()) + " power-up textures")
+
+# --- Powerup Grid Generation System ---
+func configure_initial_powerups(powerup_counts: Dictionary):
+	"""
+	Configure powerups to be placed during grid generation
+	powerup_counts format: {POWERUP_TYPE: count, ...}
+	Example: {POWERUP_BOMB_TYPE: 2, POWERUP_STRIPED_H_TYPE: 1, POWERUP_WRAPPED_TYPE: 1}
+	"""
+	initial_powerup_config = powerup_counts.duplicate()
+	debug_print("Configured initial powerups: " + str(initial_powerup_config))
+
+func _generate_grid_with_powerups():
+	"""Enhanced grid generation that includes initial powerups"""
+	debug_print("Generating grid " + str(grid_width) + "x" + str(grid_height) + " with powerups...")
+	
+	# Ensure grid_data is properly initialized
+	grid_data.clear()
+	grid_data.resize(grid_width)
+	
+	# Create list of all grid positions
+	var all_positions = []
+	for x in range(grid_width):
+		for y in range(grid_height):
+			all_positions.append(Vector2(x, y))
+	
+	# Shuffle positions for random powerup placement
+	all_positions.shuffle()
+	
+	# Calculate powerup positions
+	var powerup_positions = {}
+	var position_index = 0
+	
+	for powerup_type in initial_powerup_config.keys():
+		var count = initial_powerup_config[powerup_type]
+		for i in range(count):
+			if position_index < all_positions.size():
+				var pos = all_positions[position_index]
+				powerup_positions[pos] = powerup_type
+				position_index += 1
+				debug_print("Scheduled " + str(powerup_type) + " powerup at (" + str(pos.x) + "," + str(pos.y) + ")")
+	
+	# Generate the grid
+	for x in range(grid_width):
+		grid_data[x] = []
+		grid_data[x].resize(grid_height)
+		
+		for y in range(grid_height):
+			# Initialize to null first
+			grid_data[x][y] = null
+			
+			var pos = Vector2(x, y)
+			var item_instance = null
+			
+			if powerup_positions.has(pos):
+				# Create powerup at this position
+				var powerup_type = powerup_positions[pos]
+				var base_color = randi() % colors.size()  # Random color for the powerup
+				item_instance = _create_item(base_color, x, y, false, powerup_type)
+				debug_print("Created " + str(powerup_type) + " powerup with color " + str(base_color) + " at (" + str(x) + "," + str(y) + ")")
+			else:
+				# Create normal item
+				var item_type = _get_random_item_type(x, y)
+				item_instance = _create_item(item_type, x, y)
+			
+			if item_instance != null:
+				grid_data[x][y] = item_instance
+			else:
+				debug_print("ERROR: Failed to create item at (" + str(x) + "," + str(y) + ")")
+	
+	# Clear the powerup config after use
+	initial_powerup_config.clear()
+	debug_print("Grid generation complete with powerups integrated")
+
+# Convenience functions for common powerup configurations
+func add_test_powerups():
+	"""Add a variety of powerups for testing"""
+	var test_config = {
+		POWERUP_BOMB_TYPE: 2,
+		POWERUP_STRIPED_H_TYPE: 1,
+		POWERUP_STRIPED_V_TYPE: 1,
+		POWERUP_WRAPPED_TYPE: 1,
+		POWERUP_COLOR_BOMB_TYPE: 1,
+		POWERUP_LIGHTNING_TYPE: 1
+	}
+	configure_initial_powerups(test_config)
+	debug_print("Test powerups configured")
+
+func add_shop_powerups(purchased_powerups: Dictionary):
+	"""Add powerups purchased from shop"""
+	configure_initial_powerups(purchased_powerups)
+	debug_print("Shop powerups configured: " + str(purchased_powerups))
+
+func add_single_powerup(powerup_type: int, count: int = 1):
+	"""Add a specific number of a single powerup type"""
+	var config = {powerup_type: count}
+	configure_initial_powerups(config)
+	debug_print("Single powerup configured: " + str(powerup_type) + " x" + str(count))
+
+
+func _generate_grid():
+	"""Generate the game grid with proper initialization"""
+	if initial_powerup_config.size() > 0:
+		# Use enhanced generation with powerups
+		_generate_grid_with_powerups()
+	else:
+		# Use original generation method
+		_generate_grid_original()
+
+# --- Enhanced Utility Functions ---
+func _is_any_powerup(item_type):
+	return item_type >= POWERUP_BOMB_TYPE
+
+func _get_powerup_type(item_type):
+	if item_type >= POWERUP_FISH_TYPE:
+		return POWERUP_FISH_TYPE
+	elif item_type >= POWERUP_LIGHTNING_TYPE:
+		return POWERUP_LIGHTNING_TYPE
+	elif item_type >= POWERUP_COLOR_BOMB_TYPE:
+		return POWERUP_COLOR_BOMB_TYPE
+	elif item_type >= POWERUP_WRAPPED_TYPE:
+		return POWERUP_WRAPPED_TYPE
+	elif item_type >= POWERUP_STRIPED_V_TYPE:
+		return POWERUP_STRIPED_V_TYPE
+	elif item_type >= POWERUP_STRIPED_H_TYPE:
+		return POWERUP_STRIPED_H_TYPE
+	elif item_type >= POWERUP_BOMB_TYPE:
+		return POWERUP_BOMB_TYPE
+	return 0
+
+
+
+
+func _get_base_type(item_type):
+	if _is_any_powerup(item_type):
+		var powerup_type = _get_powerup_type(item_type)
+		return item_type - powerup_type
+	return item_type
 
 func debug_print(message):
 	if DEBUG_MODE:
@@ -235,6 +359,20 @@ func get_default_colors() -> Array:
 	]
 	return default_colors	
 
+# ADDED: Function to parse color from string
+func _parse_color_from_string(color_str: String) -> Color:
+	"""Parse color from hex string or color name"""
+	if color_str.begins_with("#"):
+		# Hex color parsing
+		var hex = color_str.substr(1)
+		if hex.length() == 6:
+			var r = ("0x" + hex.substr(0, 2)).hex_to_int() / 255.0
+			var g = ("0x" + hex.substr(2, 2)).hex_to_int() / 255.0
+			var b = ("0x" + hex.substr(4, 2)).hex_to_int() / 255.0
+			return Color(r, g, b, 1.0)
+	
+	# Fallback to white if parsing fails
+	return Color.WHITE
 
 
 # FIXED: Remove duplicate grid generation
@@ -279,15 +417,22 @@ func load_level(level_number: int) -> bool:
 	level_goals.clear()
 	level_progress.clear()
 	
-	# Get level colors with fallback to default colors
+	# CHANGED: Process level colors and update the colors array
 	var level_colors = []
 	if level_data.has("colors_array"):
-		level_colors = level_data["colors_array"]
+		var colors_data = level_data["colors_array"]
+		for color_item in colors_data:
+			if color_item is String:
+				level_colors.append(_parse_color_from_string(color_item))
+			else:
+				level_colors.append(color_item)
 	else:
 		level_colors = get_default_colors()
 		debug_print("Using default colors for level " + str(level_number))
 	
-	print_rich("[color=yellow]level colors[/color]: ", level_colors)
+	# ADDED: Update the colors array to match level requirements
+	colors = level_colors
+	debug_print("Updated colors array to: " + str(colors))
 		
 	# Set the goals in the Global singleton for other nodes to access.
 	var goals_data = level_data["level_goals"]
@@ -305,6 +450,9 @@ func load_level(level_number: int) -> bool:
 	# Store goals locally for game logic
 	level_goals = goals_to_pass.duplicate()
 	print_rich("[color=yellow]level goals[/color]: ", level_goals)
+	
+	# ADDED: Recreate color textures for the new color set
+	await _create_color_textures_safe()
 	
 	# Get tile_info from level data, but prioritize current color_textures if available
 	var tile_info = {}
@@ -394,9 +542,9 @@ func start_level(level_number: int):
 	_clear_grid()
 	
 	# Load level configuration (this sets up goals, colors, etc. but doesn't generate grid)
-	if not load_level(level_number):
+	if not await load_level(level_number):
 		debug_print("Failed to load level " + str(level_number) + ", using default")
-		if not load_level(1):
+		if not await load_level(1):
 			debug_print("CRITICAL: Could not load default level!")
 			return
 	
@@ -441,7 +589,7 @@ func restart_level():
 func _show_game_complete_message():
 	"""Show message when all levels are completed"""
 	if playerMsg_label:
-		playerMsg_label.text = "ALL LEVELS COMPLETE!\nAmazing job!"
+		playerMsg_label.text = "ALL LEVELS COMPLETE!"
 		playerMsg_label.modulate = Color(1, 1, 0, 1)
 		playerMsg_label.scale = Vector2(1.2, 1.2)
 
@@ -466,8 +614,21 @@ func _ready():
 	# Mark as initialized
 	_game_initialized = true
 	
-	# Start with level 1 (deferred to ensure everything is ready)
-	call_deferred("start_level", 1)
+	# Load power-up textures
+	_preload_powerup_textures()
+	
+	# Test powerup creation
+	add_test_powerups()
+	
+	# When player buys powerups from shop:
+	#var purchased = {POWERUP_BOMB_TYPE: 3, POWERUP_WRAPPED_TYPE: 1}
+	#add_shop_powerups(purchased)
+	# Add 2 lightning powerups to the next level:
+	#add_single_powerup(POWERUP_LIGHTNING_TYPE, 2)
+	
+	# Start with predefined level (deferred to ensure everything is ready)
+	call_deferred("start_level", current_level_number)
+	call_deferred("debug_texture_status")
 
 	next_level_btn = get_node_or_null("../../../MarginContainer/VBoxContainer/NextLevelButton")
 	restart_level_btn = get_node_or_null("../../../MarginContainer/VBoxContainer/RestartButton")
@@ -632,9 +793,8 @@ func _safe_set_grid_item(x: int, y: int, item):
 	grid_data[x][y] = item
 	return true
 
-# IMPROVED: Grid generation with better error handling
-func _generate_grid():
-	"""Generate the game grid with proper initialization"""
+func _generate_grid_original():
+	"""Original grid generation method (for reference/fallback)"""
 	debug_print("Generating grid " + str(grid_width) + "x" + str(grid_height) + "...")
 	
 	# Ensure grid_data is properly initialized
@@ -661,33 +821,38 @@ func _generate_grid():
 	debug_print("Grid generation complete with " + str(grid_width * grid_height) + " cells")
 
 func _get_random_item_type(x, y):
+	if allow_initial_matches:
+		# Allow matches for testing
+		return randi() % colors.size()
+	else:
 	# Ensures no immediate matches are created on the initial grid generation.
-	var possible_types = range(colors.size())
-	
-	if x >= 2:
-		var item1 = _safe_get_grid_item(x-1, y)
-		var item2 = _safe_get_grid_item(x-2, y)
-		if item1 != null and item2 != null:
-			var t1 = _get_base_type(item1.item_type)
-			var t2 = _get_base_type(item2.item_type)
-			if t1 == t2 and possible_types.has(t1):
-				possible_types.erase(t1)
-	
-	if y >= 2:
-		var item1 = _safe_get_grid_item(x, y-1)
-		var item2 = _safe_get_grid_item(x, y-2)
-		if item1 != null and item2 != null:
-			var t1 = _get_base_type(item1.item_type)
-			var t2 = _get_base_type(item2.item_type)
-			if t1 == t2 and possible_types.has(t1):
-				possible_types.erase(t1)
-	
-	if possible_types.size() == 0:
-		possible_types = range(colors.size())
-	
-	return possible_types[randi() % possible_types.size()]
+		var possible_types = range(colors.size())
+		
+		if x >= 2:
+			var item1 = _safe_get_grid_item(x-1, y)
+			var item2 = _safe_get_grid_item(x-2, y)
+			if item1 != null and item2 != null:
+				var t1 = _get_base_type(item1.item_type)
+				var t2 = _get_base_type(item2.item_type)
+				if t1 == t2 and possible_types.has(t1):
+					possible_types.erase(t1)
+		
+		if y >= 2:
+			var item1 = _safe_get_grid_item(x, y-1)
+			var item2 = _safe_get_grid_item(x, y-2)
+			if item1 != null and item2 != null:
+				var t1 = _get_base_type(item1.item_type)
+				var t2 = _get_base_type(item2.item_type)
+				if t1 == t2 and possible_types.has(t1):
+					possible_types.erase(t1)
+		
+		if possible_types.size() == 0:
+			possible_types = range(colors.size())
+		
+		return possible_types[randi() % possible_types.size()]
 
-# Updated _create_item function with better shader material handling
+
+
 func _create_item(item_type, x, y, is_bomb = false, powerup_type = 0):
 	var item_instance = draggable_item_scene.instantiate()
 	
@@ -701,16 +866,28 @@ func _create_item(item_type, x, y, is_bomb = false, powerup_type = 0):
 		# Fallback for old bomb creation method
 		final_item_type = POWERUP_BOMB_TYPE + item_type
 		debug_print("Creating bomb item (legacy): final=" + str(final_item_type))
-
 	item_instance.item_type = final_item_type
 	item_instance.grid_x = x
 	item_instance.grid_y = y
-
 	var sprite_instance = item_instance.get_node("Sprite2D")
 	if sprite_instance == null:
 		debug_print("ERROR: Sprite2D not found in draggable item!")
 		return null
-
+	
+	# Set the appropriate texture for powerups
+	var powerup_offset = _get_powerup_type(final_item_type)
+	debug_print("DEBUG: final_item_type=" + str(final_item_type) + " powerup_offset=" + str(powerup_offset))
+	debug_print("DEBUG: powerup_textures keys: " + str(powerup_textures.keys()))
+	debug_print("DEBUG: Current texture: " + str(sprite_instance.texture))
+	
+	if powerup_offset > 0 and powerup_textures.has(powerup_offset):
+		var old_texture = sprite_instance.texture
+		sprite_instance.texture = powerup_textures[powerup_offset]
+		debug_print("Applied powerup texture for type: " + str(powerup_offset))
+		debug_print("DEBUG: Texture changed from " + str(old_texture) + " to " + str(sprite_instance.texture))
+	else:
+		debug_print("DEBUG: No texture change - powerup_offset=" + str(powerup_offset) + " has_texture=" + str(powerup_textures.has(powerup_offset)))
+	
 	# Create new material instance - IMPORTANT for shader effects
 	var new_material = null
 	if sprite_instance.material != null:
@@ -723,7 +900,6 @@ func _create_item(item_type, x, y, is_bomb = false, powerup_type = 0):
 		new_material.shader = powerup_shader
 	
 	sprite_instance.material = new_material
-
 	var base_type = _get_base_type(final_item_type)
 	if base_type < colors.size():
 		var item_color = colors[base_type]
@@ -734,11 +910,9 @@ func _create_item(item_type, x, y, is_bomb = false, powerup_type = 0):
 		debug_print("WARNING: Invalid color type: " + str(base_type))
 		# Set a default color
 		new_material.set_shader_parameter("base_color", Color.WHITE)
-
 	var tex_size = sprite_instance.texture.get_size()
 	var scale_factor = cell_size / tex_size.x
 	sprite_instance.scale = Vector2(scale_factor, scale_factor)
-
 	# Position calculation
 	var extra_offset_x = 0.0
 	var extra_offset_y = 0.0
@@ -748,7 +922,6 @@ func _create_item(item_type, x, y, is_bomb = false, powerup_type = 0):
 	else:
 		extra_offset_x = x * shelf_gap_x
 		extra_offset_y = y * shelf_gap_y
-
 	item_instance.position = Vector2(
 		x * cell_size + cell_size / 2 + extra_offset_x,
 		y * cell_size + cell_size / 2 + extra_offset_y
@@ -760,6 +933,25 @@ func _create_item(item_type, x, y, is_bomb = false, powerup_type = 0):
 	add_child(item_instance)
 	return item_instance
 
+# Complete _create_item function with sprite support
+
+func debug_texture_status():
+	debug_print("=== TEXTURE DEBUG STATUS ===")
+	debug_print("color_textures size: " + str(color_textures.size()))
+	debug_print("powerup_textures size: " + str(powerup_textures.size()))
+	debug_print("colors array size: " + str(colors.size()))
+	
+	# Check if base draggable item has texture
+	var test_item = draggable_item_scene.instantiate()
+	var test_sprite = test_item.get_node("Sprite2D")
+	if test_sprite != null:
+		debug_print("Base draggable item texture: " + str(test_sprite.texture))
+		debug_print("Base texture size: " + str(test_sprite.texture.get_size() if test_sprite.texture != null else "NULL"))
+	else:
+		debug_print("ERROR: No Sprite2D in draggable item scene!")
+	test_item.queue_free()
+	
+	debug_print("=== END TEXTURE DEBUG ===")
 
 func _apply_powerup_visual_effects(material, item_type, base_color):
 	"""Apply visual effects based on power-up type"""
@@ -773,11 +965,11 @@ func _apply_powerup_visual_effects(material, item_type, base_color):
 	
 	match powerup_type:
 		POWERUP_BOMB_TYPE:
-			# Pulsing orange/red effect for bomb
-			material.set_shader_parameter("is_bomb", true)
-			material.set_shader_parameter("pulse_strength", 0.4)
-			material.set_shader_parameter("pulse_speed", 2.5)
-			debug_print("Applied bomb visual effects")
+			material.set_shader_parameter("fire_effect", true)
+			material.set_shader_parameter("fire_speed", 0.5)
+			material.set_shader_parameter("pulse_strength", 0.3)
+			material.set_shader_parameter("pulse_speed", 0.8)
+			debug_print("Applied  bomb visual effects")
 		
 		POWERUP_STRIPED_H_TYPE:
 			# Horizontal stripes effect
@@ -805,27 +997,27 @@ func _apply_powerup_visual_effects(material, item_type, base_color):
 			debug_print("Applied wrapped visual effects")
 		
 		POWERUP_COLOR_BOMB_TYPE:
-			# Rainbow/multicolor effect
-			material.set_shader_parameter("rainbow_effect", true)
-			material.set_shader_parameter("rainbow_speed", 1.5)
+			# Fire/burning effect
+			material.set_shader_parameter("fire_effect", true)
+			material.set_shader_parameter("fire_speed", 1.5)
 			material.set_shader_parameter("pulse_strength", 0.3)
 			material.set_shader_parameter("pulse_speed", 1.8)
 			debug_print("Applied color bomb visual effects")
 		
-		POWERUP_STAR_TYPE:
+		POWERUP_LIGHTNING_TYPE:
 			# Star effect with sparkles
-			material.set_shader_parameter("star_effect", true)
-			material.set_shader_parameter("sparkle_intensity", 0.7)
-			material.set_shader_parameter("sparkle_frequency", 6.0)
-			material.set_shader_parameter("base_color", Color.YELLOW)
-			debug_print("Applied star visual effects")
+			material.set_shader_parameter("lightning_effect", true)
+			material.set_shader_parameter("lightning_intensity", 5)
+			material.set_shader_parameter("lightning_speed", 3.0)
+			material.set_shader_parameter("lightning_color", Color.WHITE)
+			debug_print("Applied lightning visual effects")
 		
 		POWERUP_FISH_TYPE:
 			# Fish effect with swimming animation
 			material.set_shader_parameter("fish_effect", true)
 			material.set_shader_parameter("wave_strength", 0.4)
 			material.set_shader_parameter("wave_frequency", 3.0)
-			material.set_shader_parameter("base_color", Color.CYAN)
+			#material.set_shader_parameter("base_color", Color.CYAN)
 			debug_print("Applied fish visual effects")
 
 
@@ -836,8 +1028,8 @@ func _reset_shader_parameters(material):
 	material.set_shader_parameter("stripe_horizontal", false)
 	material.set_shader_parameter("stripe_vertical", false)
 	material.set_shader_parameter("is_wrapped", false)
-	material.set_shader_parameter("rainbow_effect", false)
-	material.set_shader_parameter("star_effect", false)
+	material.set_shader_parameter("fire_effect", false)
+	material.set_shader_parameter("lightning_effect", false)
 	material.set_shader_parameter("fish_effect", false)
 	
 	# Reset numeric parameters to defaults
@@ -915,29 +1107,6 @@ func end_drag(pos):
 	dragged_item = null
 	target_item = null
 
-#func _handle_swap_attempt(item1, item2, x1, y1, x2, y2):
-	#"""Handle the swap attempt with proper error checking and timeouts"""
-	#attempt_swap(item1, item2, x1, y1, x2, y2)
-	#await get_tree().create_timer(0.2).timeout
-#
-	#debug_print("Checking for initial match...")
-	#
-	## Add timeout to prevent hanging
-	#var timeout_timer = get_tree().create_timer(ASYNC_TIMEOUT)
-	#var initial_match_found = await check_for_matches()
-	#
-	#if timeout_timer.time_left <= 0:
-		#debug_print("WARNING: Match check timed out!")
-		#attempt_swap(item1, item2, x2, y2, x1, y1) # Swap back
-		#return
-	#
-	#debug_print("Initial match found: " + str(initial_match_found))
-	#if initial_match_found:
-		#debug_print("Initial match found, starting cascade.")
-		#await _handle_cascade()
-	#else:
-		#debug_print("No initial match found, swapping back.")
-		#attempt_swap(item1, item2, x2, y2, x1, y1)
 
 func _handle_swap_attempt(item1, item2, x1, y1, x2, y2):
 	"""Handle the swap attempt with power-up combination checking"""
@@ -1254,12 +1423,34 @@ func check_for_matches() -> bool:
 	
 	return result
 
+
 func _perform_match_check() -> bool:
 	"""Perform the actual match checking logic"""
 	var to_remove = {}
 	var new_bombs_to_create = {}
 
 	set_meta("bomb_affected_tiles", [])
+
+	# ADDED: Check for 2x2 square matches first (for fish powerups)
+	var square_matches = _check_for_square_matches()
+	for square_pos in square_matches.keys():
+		var x = int(square_pos.x)
+		var y = int(square_pos.y)
+		
+		# Get the color type from one of the square tiles
+		var sample_item = _safe_get_grid_item(x, y)
+		if sample_item != null:
+			var base_type = _get_base_type(sample_item.item_type)
+			
+			# Mark all 4 tiles in the square for removal
+			to_remove[Vector2(x, y)] = true
+			to_remove[Vector2(x + 1, y)] = true
+			to_remove[Vector2(x, y + 1)] = true
+			to_remove[Vector2(x + 1, y + 1)] = true
+			
+			# Create fish powerup at the top-left position of the square
+			new_bombs_to_create[square_pos] = {"type": base_type, "powerup": POWERUP_FISH_TYPE}
+			debug_print("Creating fish powerup from 2x2 square at (" + str(x) + "," + str(y) + ")")
 
 	# Check for horizontal matches of 3 or more
 	for y in range(grid_height):
@@ -1344,7 +1535,7 @@ func _perform_match_check() -> bool:
 		return true
 
 	return false
-	
+		
 # --- Enhanced Match Processing with Power-up Creation Logic ---
 func _process_match(x: int, y: int, direction: String, length: int, to_remove: Dictionary, new_bombs_to_create: Dictionary):
 	var grid_item = _safe_get_grid_item(x, y)
@@ -1398,19 +1589,26 @@ func _process_match(x: int, y: int, direction: String, length: int, to_remove: D
 				to_remove[item_pos] = true
 
 
+# Updated _determine_powerup_type function with swapped conditions
 func _determine_powerup_type(length: int, direction: String, x: int, y: int) -> int:
 	"""Determine what type of power-up to create based on match characteristics"""
 	
-	# Check for L or T shapes for wrapped candy
+	# Priority 1: Check for L or T shapes for BOMB creation
 	if _check_for_l_or_t_shape(x, y):
+		debug_print("Creating BOMB from L/T shape at (" + str(x) + "," + str(y) + ")")
+		return POWERUP_BOMB_TYPE
+	
+	# Priority 2: Check for corner/edge matches for WRAPPED candy
+	if _is_corner_match(x, y, length, direction):
+		debug_print("Creating WRAPPED from corner match at (" + str(x) + "," + str(y) + ")")
 		return POWERUP_WRAPPED_TYPE
 	
-	# Length-based power-ups
+	# Priority 3: Length-based power-ups
 	match length:
 		7, 8, 9, 10: # Very long matches create fish
 			return POWERUP_FISH_TYPE
-		6: # 6 in a line creates star
-			return POWERUP_STAR_TYPE
+		6: # 6 in a line creates lightning
+			return POWERUP_LIGHTNING_TYPE
 		5: # 5 in a line creates color bomb
 			return POWERUP_COLOR_BOMB_TYPE
 		4: # 4 in a line creates striped candy
@@ -1421,6 +1619,63 @@ func _determine_powerup_type(length: int, direction: String, x: int, y: int) -> 
 		_:
 			return 0  # No power-up for matches less than 4
 			
+			
+			
+func _is_corner_match(x: int, y: int, length: int, direction: String) -> bool:
+	"""Check if match occurs at board corners, edges, or specific patterns for wrapped candy"""
+	
+	# Require at least 4 tiles for wrapped candy creation
+	if length < 4:
+		return false
+	
+	# Method 1: True corners of the board
+	if (x == 0 and y == 0) or (x == grid_width-1 and y == 0) or  (x == 0 and y == grid_height-1) or (x == grid_width-1 and y == grid_height-1):
+		debug_print("Corner match detected at true corner (" + str(x) + "," + str(y) + ")")
+		return true
+	
+	# Method 2: Near corners (within 1-2 cells of any corner)
+	var near_left_edge = x <= 1
+	var near_right_edge = x >= grid_width - 2
+	var near_top_edge = y <= 1
+	var near_bottom_edge = y >= grid_height - 2
+	
+	var near_corner = (near_left_edge or near_right_edge) and (near_top_edge or near_bottom_edge)
+	if near_corner:
+		debug_print("Near-corner match detected at (" + str(x) + "," + str(y) + ")")
+		return true
+	
+	# Method 3: Edge matches with sufficient length (5+ tiles)
+	if length >= 5:
+		var is_edge = (x == 0 or x == grid_width-1 or y == 0 or y == grid_height-1)
+		if is_edge:
+			debug_print("Edge match with length " + str(length) + " detected at (" + str(x) + "," + str(y) + ")")
+			return true
+	
+	return false
+
+
+
+func _is_corner_match_strict(x: int, y: int, length: int, direction: String) -> bool:
+	"""Stricter corner match detection - only true corners and immediate neighbors"""
+	
+	if length < 4:
+		return false
+	
+	# Only true corners and their immediate neighbors
+	var corners = [
+		Vector2(0, 0), Vector2(1, 0), Vector2(0, 1),  # Top-left corner area
+		Vector2(grid_width-1, 0), Vector2(grid_width-2, 0), Vector2(grid_width-1, 1),  # Top-right
+		Vector2(0, grid_height-1), Vector2(1, grid_height-1), Vector2(0, grid_height-2),  # Bottom-left
+		Vector2(grid_width-1, grid_height-1), Vector2(grid_width-2, grid_height-1), Vector2(grid_width-1, grid_height-2)  # Bottom-right
+	]
+	
+	var current_pos = Vector2(x, y)
+	if current_pos in corners:
+		debug_print("Strict corner match detected at (" + str(x) + "," + str(y) + ")")
+		return true
+	
+	return false
+
 			
 func _check_for_l_or_t_shape(x: int, y: int) -> bool:
 	"""Check if there's an L or T shaped match at the given position"""
@@ -1506,8 +1761,8 @@ func _trigger_powerup_effect(pos: Vector2, to_remove: Dictionary):
 			_trigger_wrapped_effect(x, y, to_remove)
 		POWERUP_COLOR_BOMB_TYPE:
 			_trigger_color_bomb_effect(x, y, to_remove)
-		POWERUP_STAR_TYPE:
-			_trigger_star_effect(x, y, to_remove)
+		POWERUP_LIGHTNING_TYPE:
+			_trigger_lightning_effect(x, y, to_remove)
 		POWERUP_FISH_TYPE:
 			_trigger_fish_effect(x, y, to_remove)
 	
@@ -1607,7 +1862,7 @@ func _trigger_color_bomb_effect(x: int, y: int, to_remove: Dictionary):
 					var tile_pos = Vector2(grid_x, grid_y)
 					to_remove[tile_pos] = true
 
-func _trigger_star_effect(x: int, y: int, to_remove: Dictionary):
+func _trigger_lightning_effect(x: int, y: int, to_remove: Dictionary):
 	"""Remove tiles in diagonal directions"""
 	debug_print("Triggering star effect at (" + str(x) + "," + str(y) + ")")
 	
@@ -1862,17 +2117,25 @@ func apply_gravity():
 	debug_print("Finished applying gravity.")
 
 
+
 func _check_for_empty_cells() -> bool:
 	"""
-	Checks if there are any empty (null) cells in the grid.
+	Safely checks if there are any empty (null) cells in the grid.
 	Returns true if empty cells are found, otherwise false.
 	"""
+	# Use the safe grid checking approach
+	if not _is_grid_ready():
+		debug_print("Grid not ready for empty cell check")
+		return false
+	
 	for x in range(grid_width):
 		for y in range(grid_height):
-			if grid_data[x][y] == null:
+			var item = _safe_get_grid_item(x, y)
+			if item == null:
+				debug_print("Found empty cell at (" + str(x) + "," + str(y) + ")")
 				return true
+	
 	return false
-
 
 
 func refill_grid():
@@ -1977,7 +2240,173 @@ func _on_timer_timeout() -> void:
 		refill_grid()
 		debug_print("[color=pink] Timed refill [/color]")
 		
+func _on_match_timer_timeout() -> void:
+	if is_processing_cascade or is_matching_in_progress or refill_in_progress:
+		return
+	#debug_print("[color=orange] Timed match check [/color]")
+	is_matching_in_progress = true
+	var matches_found = _find_all_matches_in_grid()
+
+	if matches_found.size() > 0:
+		_process_found_matches(matches_found)
+		debug_print("[color=pink] Timed match [/color]")
+	is_matching_in_progress = false
+
+
+func _find_all_matches_in_grid() -> Dictionary:
+	"""Find all current matches on the grid"""
+	debug_print("Scanning grid for matches...")
+	var matches = {}
+	
+	# Ensure grid is valid
+	if not _is_grid_ready():
+		debug_print("Grid not ready for match detection")
+		return matches
+	
+	# Check horizontal matches (3+ in a row)
+	for y in range(grid_height):
+		var current_type = -1
+		var run_length = 0
+		var run_start = 0
 		
+		for x in range(grid_width):
+			var item = _safe_get_grid_item(x, y)
+			var item_type = -1
+			
+			if item != null and is_instance_valid(item):
+				item_type = _get_base_type(item.item_type)
+			
+			if item_type == current_type and item_type >= 0:
+				run_length += 1
+			else:
+				# Process previous run if it was a match
+				if run_length >= 3:
+					for i in range(run_start, run_start + run_length):
+						matches[Vector2(i, y)] = true
+					debug_print("Found horizontal match of " + str(run_length) + " at row " + str(y) + " starting at " + str(run_start))
+				
+				# Start new run
+				current_type = item_type
+				run_length = 1 if item_type >= 0 else 0
+				run_start = x
+		
+		# Check final run
+		if run_length >= 3:
+			for i in range(run_start, run_start + run_length):
+				matches[Vector2(i, y)] = true
+			debug_print("Found horizontal match of " + str(run_length) + " at row " + str(y) + " starting at " + str(run_start))
+	
+	# Check vertical matches (3+ in a column)
+	for x in range(grid_width):
+		var current_type = -1
+		var run_length = 0
+		var run_start = 0
+		
+		for y in range(grid_height):
+			var item = _safe_get_grid_item(x, y)
+			var item_type = -1
+			
+			if item != null and is_instance_valid(item):
+				item_type = _get_base_type(item.item_type)
+			
+			if item_type == current_type and item_type >= 0:
+				run_length += 1
+			else:
+				# Process previous run if it was a match
+				if run_length >= 3:
+					for i in range(run_start, run_start + run_length):
+						matches[Vector2(x, i)] = true
+					debug_print("Found vertical match of " + str(run_length) + " at column " + str(x) + " starting at " + str(run_start))
+				
+				# Start new run
+				current_type = item_type
+				run_length = 1 if item_type >= 0 else 0
+				run_start = y
+		
+		# Check final run
+		if run_length >= 3:
+			for i in range(run_start, run_start + run_length):
+				matches[Vector2(x, i)] = true
+			debug_print("Found vertical match of " + str(run_length) + " at column " + str(x) + " starting at " + str(run_start))
+	
+	debug_print("Total matches found: " + str(matches.size()))
+	return matches
+
+	
+	
+# This new function calls your existing _process_match
+#func _process_found_matches(matches: Dictionary):
+	#var to_remove = {}
+	#var new_bombs_to_create = {}
+	#
+	#for pos in matches.keys():
+		#var x = int(pos.x)
+		#var y = int(pos.y)
+		#_process_match(x, y, "timed", 3, to_remove, new_bombs_to_create)
+	#
+	#_handle_cascade()
+
+func _process_found_matches(matches: Dictionary):
+	"""Process the matches found by the timed system"""
+	debug_print("Processing " + str(matches.size()) + " timed matches...")
+	
+	if matches.size() == 0:
+		return
+	
+	# Use your existing highlight_and_remove function
+	highlight_and_remove(matches.keys(), false)
+	await get_tree().create_timer(0.3).timeout
+	
+	# Trigger cascade to handle falling tiles and new matches
+	await _handle_cascade()
+	
+	debug_print("Timed match processing complete")
+
+func _on_match_timer_timeout_alternative() -> void:
+	"""Alternative approach using your existing check_for_matches system"""
+	debug_print("Alternative match timer triggered...")
+	
+	if is_processing_cascade or is_matching_in_progress or refill_in_progress:
+		return
+	
+	if is_game_over or is_level_complete:
+		return
+
+	is_matching_in_progress = true
+	
+	# Use your existing match detection system
+	var matches_found = await check_for_matches()
+	
+	if matches_found:
+		debug_print("[color=pink] Timed match found - starting cascade [/color]")
+		await _handle_cascade()
+	else:
+		debug_print("No timed matches found")
+		
+	is_matching_in_progress = false
+	
+	# Debug function to check timer status
+func debug_timer_status():
+	"""Debug function to check if timers are working"""
+	debug_print("=== TIMER DEBUG ===")
+	var timers = get_children().filter(func(child): return child is Timer)
+	debug_print("Found " + str(timers.size()) + " timer nodes")
+	
+	for timer in timers:
+		debug_print("Timer: " + str(timer.name) + 
+				   " - wait_time: " + str(timer.wait_time) + 
+				   " - is_stopped: " + str(timer.is_stopped()) +
+				   " - autostart: " + str(timer.autostart))
+	
+	debug_print("Game state - initialized: " + str(_game_initialized) +
+			   ", processing_cascade: " + str(is_processing_cascade) +
+			   ", matching_in_progress: " + str(is_matching_in_progress) +
+			   ", refill_in_progress: " + str(refill_in_progress))
+	debug_print("=== END TIMER DEBUG ===")
+
+
+
+	
 func flush_all_items():
 	"""Highlight and remove all items on the grid when game is over"""
 	debug_print("Flushing all items from grid...")
@@ -2051,7 +2480,7 @@ func _trigger_same_powerup_combination(powerup_type: int, pos1: Vector2, pos2: V
 			_trigger_clear_board_effect(to_remove)
 			debug_print("Board clear effect triggered!")
 		
-		POWERUP_STAR_TYPE:
+		POWERUP_LIGHTNING_TYPE:
 			# Two stars = Remove all corners and center cross
 			_trigger_star_constellation_effect(to_remove)
 			debug_print("Star constellation effect triggered!")
@@ -2258,3 +2687,42 @@ func _find_most_common_color() -> int:
 			target_color = color_type
 	
 	return target_color
+
+
+#Add this function to detect 2x2 square matches
+func _check_for_square_matches() -> Dictionary:
+	"""Check for 2x2 square matches and return positions to create fish powerups"""
+	var fish_positions = {}
+	
+	# Check each possible 2x2 square position
+	for x in range(grid_width - 1):
+		for y in range(grid_height - 1):
+			if _is_2x2_square_match(x, y):
+				# Place fish at top-left of the square (or could be random position in square)
+				fish_positions[Vector2(x, y)] = true
+				debug_print("Found 2x2 square match at (" + str(x) + "," + str(y) + ")")
+	
+	return fish_positions
+
+func _is_2x2_square_match(x: int, y: int) -> bool:
+	"""Check if there's a 2x2 square of the same color starting at position (x,y)"""
+	var top_left = _safe_get_grid_item(x, y)
+	var top_right = _safe_get_grid_item(x + 1, y)
+	var bottom_left = _safe_get_grid_item(x, y + 1)
+	var bottom_right = _safe_get_grid_item(x + 1, y + 1)
+	
+	# Check if all 4 items exist and are valid
+	if top_left == null or top_right == null or bottom_left == null or bottom_right == null:
+		return false
+	
+	if not is_instance_valid(top_left) or not is_instance_valid(top_right) or not is_instance_valid(bottom_left) or not is_instance_valid(bottom_right):
+		return false
+	
+	# Get base types (ignore powerup modifiers)
+	var type1 = _get_base_type(top_left.item_type)
+	var type2 = _get_base_type(top_right.item_type)
+	var type3 = _get_base_type(bottom_left.item_type)
+	var type4 = _get_base_type(bottom_right.item_type)
+	
+	# Check if all 4 tiles are the same base color
+	return type1 == type2 and type2 == type3 and type3 == type4

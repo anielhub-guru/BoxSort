@@ -4,6 +4,26 @@ extends Node2D
 
 class_name GameManager
 
+
+# --- Enhanced Power-up Constants ---
+const POWERUP_BOMB_TYPE = 100      # 3x3 explosion (existing)
+const POWERUP_STRIPED_H_TYPE = 200 # Horizontal striped candy
+const POWERUP_STRIPED_V_TYPE = 300 # Vertical striped candy
+const POWERUP_WRAPPED_TYPE = 400   # Wrapped candy (3x3 + second explosion)
+const POWERUP_COLOR_BOMB_TYPE = 500 # Color bomb (removes all of one color)
+const POWERUP_LIGHTNING_TYPE = 600      # Star candy (diagonal removal)
+const POWERUP_FISH_TYPE = 700      # Fish candy (targets random tiles)
+
+# Power-up creation thresholds
+const STRIPED_MATCH_COUNT = 4      # 4 in a line creates striped
+const WRAPPED_MATCH_COUNT = 5      # L or T shape creates wrapped
+const LIGHTNING_MATCH_COUNT = 5         # 5 in a line creates star (was 6)
+const COLOR_BOMB_MATCH_COUNT = 6   # 6 in a line creates color bomb (was 5)
+
+const DEBUG_MODE = true # Change to false for release
+const MAX_CASCADE_ROUNDS = 10 
+const ASYNC_TIMEOUT = 5.0
+
 # --- Game Board Properties ---
 # These variables control the size and layout of the game grid.
 var grid_width = 6
@@ -19,6 +39,7 @@ var refill_in_progress = false
 var is_matching_in_progress = false
 var powerup_textures: Dictionary = {}
 var allow_initial_matches = false  # allow initaial matches for testing
+var initial_powerup_config = {} # Dictionary to store powerup placement config
 
 # game audio
 @onready var tile_match_audio = $"../TileMatchAudio" 
@@ -41,22 +62,54 @@ var colors = [
 ]
 
 
-# --- Enhanced Power-up Constants ---
-const POWERUP_BOMB_TYPE = 100      # 3x3 explosion (existing)
-const POWERUP_STRIPED_H_TYPE = 200 # Horizontal striped candy
-const POWERUP_STRIPED_V_TYPE = 300 # Vertical striped candy
-const POWERUP_WRAPPED_TYPE = 400   # Wrapped candy (3x3 + second explosion)
-const POWERUP_COLOR_BOMB_TYPE = 500 # Color bomb (removes all of one color)
-const POWERUP_LIGHTNING_TYPE = 600      # Star candy (diagonal removal)
-const POWERUP_FISH_TYPE = 700      # Fish candy (targets random tiles)
+var _cached_matches = {}
+var _grid_hash = ""
 
-# Power-up creation thresholds
-const STRIPED_MATCH_COUNT = 4      # 4 in a line creates striped
-const WRAPPED_MATCH_COUNT = 5      # L or T shape creates wrapped
-const LIGHTNING_MATCH_COUNT = 5         # 5 in a line creates star (was 6)
-const COLOR_BOMB_MATCH_COUNT = 6   # 6 in a line creates color bomb (was 5)
+# --- Level Management System ---
+var current_level_number = 14
+var levels_data = {}
+var max_available_level = 1
+var _level_completion_processed = false
+var _game_initialized = false
+
+# --- Level Goal System ---
+var level_goals = {} # Dictionary to store goals for each color type (e.g., {0: 15, 1: 10})
+var level_progress = {} # Dictionary to track progress for each color type (e.g., {0: 5, 1: 3})
+var is_level_complete = false
+var score = 0 # tracks level specific points
+var total_score = 0 #tracks total run  points
+
+# --- Drag and Drop Variables ---
+# These variables manage the state of dragging and swapping items.
+var dragging = false
+var drag_start_pos = Vector2()
+var drag_offset = Vector2()
+var dragged_item: Node2D = null
+var target_item: Node2D = null
+var start_x = 0
+var start_y = 0
+
+# --- Timer Variables ---
+var time_limit = 30.0 # Initial time limit for the level
+var time_left = 0.0
+var is_game_over = false
+
+# --- References to UI Elements ---
+# These variables will be assigned references to UI nodes at runtime.
+var time_label: Label
+var playerMsg_label: Label
+var goal_label: Label
+@export var bonus_time_per_match: float = 0.2 # Time added for each matched item
+var playerMsg_initial_position: Vector2
+var level_label: Label
 
 
+# New dictionary to hold a colored texture for each type
+var color_textures: Dictionary = {}
+
+# --- Processing State ---
+var is_processing_cascade = false # Prevents input during match cascades
+var _processing_bomb_effects = false
 
 func _preload_powerup_textures():
 	"""Preload all power-up sprite textures"""
@@ -71,20 +124,112 @@ func _preload_powerup_textures():
 	}
 	debug_print("Loaded " + str(powerup_textures.size()) + " power-up textures")
 
-func test_powerup_creation():
-	# Test bomb creation
-	_create_item(1, 2, 3, false, POWERUP_BOMB_TYPE)
-	debug_print("Test BOMB created at (2,3)")
+# --- Powerup Grid Generation System ---
+func configure_initial_powerups(powerup_counts: Dictionary):
+	"""
+	Configure powerups to be placed during grid generation
+	powerup_counts format: {POWERUP_TYPE: count, ...}
+	Example: {POWERUP_BOMB_TYPE: 2, POWERUP_STRIPED_H_TYPE: 1, POWERUP_WRAPPED_TYPE: 1}
+	"""
+	initial_powerup_config = powerup_counts.duplicate()
+	debug_print("Configured initial powerups: " + str(initial_powerup_config))
+
+func _generate_grid_with_powerups():
+	"""Enhanced grid generation that includes initial powerups"""
+	debug_print("Generating grid " + str(grid_width) + "x" + str(grid_height) + " with powerups...")
 	
-	# Test wrapped creation  
-	_create_item(2, 0, 0, false, POWERUP_WRAPPED_TYPE)
-	debug_print("Test WRAPPED created at (0,0)")
+	# Ensure grid_data is properly initialized
+	grid_data.clear()
+	grid_data.resize(grid_width)
 	
-	# Test other powerups
-	_create_item(0, 4, 1, false, POWERUP_COLOR_BOMB_TYPE)
-	_create_item(3, 1, 4, false, POWERUP_LIGHTNING_TYPE)
+	# Create list of all grid positions
+	var all_positions = []
+	for x in range(grid_width):
+		for y in range(grid_height):
+			all_positions.append(Vector2(x, y))
 	
-	debug_print("[color=red]Test powerups added[/color]")
+	# Shuffle positions for random powerup placement
+	all_positions.shuffle()
+	
+	# Calculate powerup positions
+	var powerup_positions = {}
+	var position_index = 0
+	
+	for powerup_type in initial_powerup_config.keys():
+		var count = initial_powerup_config[powerup_type]
+		for i in range(count):
+			if position_index < all_positions.size():
+				var pos = all_positions[position_index]
+				powerup_positions[pos] = powerup_type
+				position_index += 1
+				debug_print("Scheduled " + str(powerup_type) + " powerup at (" + str(pos.x) + "," + str(pos.y) + ")")
+	
+	# Generate the grid
+	for x in range(grid_width):
+		grid_data[x] = []
+		grid_data[x].resize(grid_height)
+		
+		for y in range(grid_height):
+			# Initialize to null first
+			grid_data[x][y] = null
+			
+			var pos = Vector2(x, y)
+			var item_instance = null
+			
+			if powerup_positions.has(pos):
+				# Create powerup at this position
+				var powerup_type = powerup_positions[pos]
+				var base_color = randi() % colors.size()  # Random color for the powerup
+				item_instance = _create_item(base_color, x, y, false, powerup_type)
+				debug_print("Created " + str(powerup_type) + " powerup with color " + str(base_color) + " at (" + str(x) + "," + str(y) + ")")
+			else:
+				# Create normal item
+				var item_type = _get_random_item_type(x, y)
+				item_instance = _create_item(item_type, x, y)
+			
+			if item_instance != null:
+				grid_data[x][y] = item_instance
+			else:
+				debug_print("ERROR: Failed to create item at (" + str(x) + "," + str(y) + ")")
+	
+	# Clear the powerup config after use
+	initial_powerup_config.clear()
+	debug_print("Grid generation complete with powerups integrated")
+
+# Convenience functions for common powerup configurations
+func add_test_powerups():
+	"""Add a variety of powerups for testing"""
+	var test_config = {
+		POWERUP_BOMB_TYPE: 2,
+		POWERUP_STRIPED_H_TYPE: 1,
+		POWERUP_STRIPED_V_TYPE: 1,
+		POWERUP_WRAPPED_TYPE: 1,
+		POWERUP_COLOR_BOMB_TYPE: 1,
+		POWERUP_LIGHTNING_TYPE: 1
+	}
+	configure_initial_powerups(test_config)
+	debug_print("Test powerups configured")
+
+func add_shop_powerups(purchased_powerups: Dictionary):
+	"""Add powerups purchased from shop"""
+	configure_initial_powerups(purchased_powerups)
+	debug_print("Shop powerups configured: " + str(purchased_powerups))
+
+func add_single_powerup(powerup_type: int, count: int = 1):
+	"""Add a specific number of a single powerup type"""
+	var config = {powerup_type: count}
+	configure_initial_powerups(config)
+	debug_print("Single powerup configured: " + str(powerup_type) + " x" + str(count))
+
+
+func _generate_grid():
+	"""Generate the game grid with proper initialization"""
+	if initial_powerup_config.size() > 0:
+		# Use enhanced generation with powerups
+		_generate_grid_with_powerups()
+	else:
+		# Use original generation method
+		_generate_grid_original()
 
 # --- Enhanced Utility Functions ---
 func _is_any_powerup(item_type):
@@ -115,61 +260,6 @@ func _get_base_type(item_type):
 		var powerup_type = _get_powerup_type(item_type)
 		return item_type - powerup_type
 	return item_type
-
-const DEBUG_MODE = true # Change to false for release
-const MAX_CASCADE_ROUNDS = 10 
-const ASYNC_TIMEOUT = 5.0
-var _cached_matches = {}
-var _grid_hash = ""
-
-# --- Level Management System ---
-var current_level_number = 20
-var levels_data = {}
-var max_available_level = 1
-var _level_completion_processed = false
-var _game_initialized = false
-
-# --- Level Goal System ---
-var level_goals = {} # Dictionary to store goals for each color type (e.g., {0: 15, 1: 10})
-var level_progress = {} # Dictionary to track progress for each color type (e.g., {0: 5, 1: 3})
-var is_level_complete = false
-var score = 0 # tracks level specific points
-var total_score = 0 #tracks total run  points
-
-# --- Drag and Drop Variables ---
-# These variables manage the state of dragging and swapping items.
-var dragging = false
-var drag_start_pos = Vector2()
-var drag_offset = Vector2()
-var dragged_item: Node2D = null
-var target_item: Node2D = null
-var start_x = 0
-var start_y = 0
-
-# --- Timer Variables ---
-var time_limit = 30.0 # Initial time limit for the level
-var time_left = 0.0
-var is_game_over = false
-
-
-
-# --- References to UI Elements ---
-# These variables will be assigned references to UI nodes at runtime.
-var time_label: Label
-var playerMsg_label: Label
-var goal_label: Label
-@export var bonus_time_per_match: float = 0.2 # Time added for each matched item
-var playerMsg_initial_position: Vector2
-var level_label: Label
-
-
-# New dictionary to hold a colored texture for each type
-var color_textures: Dictionary = {}
-
-# --- Processing State ---
-var is_processing_cascade = false # Prevents input during match cascades
-var _processing_bomb_effects = false
-
 
 func debug_print(message):
 	if DEBUG_MODE:
@@ -528,9 +618,15 @@ func _ready():
 	_preload_powerup_textures()
 	
 	# Test powerup creation
-	#test_powerup_creation()
+	add_test_powerups()
 	
-	# Start with level 1 (deferred to ensure everything is ready)
+	# When player buys powerups from shop:
+	#var purchased = {POWERUP_BOMB_TYPE: 3, POWERUP_WRAPPED_TYPE: 1}
+	#add_shop_powerups(purchased)
+	# Add 2 lightning powerups to the next level:
+	#add_single_powerup(POWERUP_LIGHTNING_TYPE, 2)
+	
+	# Start with predefined level (deferred to ensure everything is ready)
 	call_deferred("start_level", current_level_number)
 	call_deferred("debug_texture_status")
 
@@ -697,9 +793,8 @@ func _safe_set_grid_item(x: int, y: int, item):
 	grid_data[x][y] = item
 	return true
 
-# IMPROVED: Grid generation with better error handling
-func _generate_grid():
-	"""Generate the game grid with proper initialization"""
+func _generate_grid_original():
+	"""Original grid generation method (for reference/fallback)"""
 	debug_print("Generating grid " + str(grid_width) + "x" + str(grid_height) + "...")
 	
 	# Ensure grid_data is properly initialized
