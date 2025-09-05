@@ -1,7 +1,11 @@
 # grid.gd
 
 extends Node2D
-class_name GameManager3
+class_name GameManager
+
+var effects
+
+
 const POWERUP_BOMB_TYPE = 100      # 3x3 explosion (existing)
 const POWERUP_STRIPED_H_TYPE = 200 # Horizontal striped candy
 const POWERUP_STRIPED_V_TYPE = 300 # Vertical striped candy
@@ -230,6 +234,8 @@ func _get_powerup_type(item_type):
 		return POWERUP_STRIPED_H_TYPE
 	elif item_type >= POWERUP_BOMB_TYPE:
 		return POWERUP_BOMB_TYPE
+	elif item_type >= POWERUP_TIME_FREEZE_TYPE:
+		return POWERUP_TIME_FREEZE_TYPE
 	return 0
 
 func _get_base_type(item_type):
@@ -584,6 +590,14 @@ func _show_game_complete_message():
 
 # --- Core Functions ---
 func _ready():
+	effects = PowerupEffects.new()
+	effects.grid_width = grid_width
+	effects.grid_height = grid_height
+	effects.draggable_item_scene = draggable_item_scene
+	effects.colors = colors
+	effects.powerup_textures = powerup_textures
+	effects.grid_owner = self
+
 	debug_print("--- Game Started ---")
 	randomize()
 	color_textures = {}
@@ -630,6 +644,26 @@ func _ready():
 	if restart_level_btn != null:
 		restart_level_btn.pressed.connect(_on_restart_level_button_pressed)
 		#restart_level_btn.hide()
+
+	effects = PowerupEffects.new()
+	effects.grid_width = grid_width
+	effects.grid_height = grid_height
+	effects.draggable_item_scene = draggable_item_scene
+	effects.colors = colors
+	effects.powerup_textures = powerup_textures
+	effects._safe_get_grid_item = Callable(self, "_safe_get_grid_item").call
+	effects._is_inside_grid = Callable(self, "_is_inside_grid").call
+	effects.highlight_and_remove = Callable(self, "highlight_and_remove").call
+	effects.launch_synchronized_missiles = Callable(self, "launch_synchronized_missiles").call
+	effects.grid_to_world_position = Callable(self, "grid_to_world_position").call
+	effects._get_base_type = Callable(self, "_get_base_type").call
+	effects.randi_range = Callable(self, "randi_range").call
+	effects.create_tween = Callable(self, "create_tween").call
+	effects.get_tree = Callable(self, "get_tree").call
+	effects.debug_print = Callable(self, "debug_print").call
+	effects._activate_time_freeze = Callable(self, "_activate_time_freeze").call
+	debug_print("--- Game Started ---")
+
 
 func _on_next_level_button_pressed():
 	if next_level_btn != null:
@@ -757,11 +791,12 @@ func _process(delta):
 				time_left = 0
 				_deactivate_golden_time()  # NEW: Deactivate golden time when game ends
 				game_over()
+			if time_left >3:
+				_deactivate_golden_time()  # NEW: Deactivate golden time when game ends
+
 			
 			# NEW: Update time display with golden time indicator
 			var time_text = "Time: " + str(int(time_left)) + "\nScore: " + str(score)
-			if golden_time_active:
-				time_text += "\n★ GOLDEN TIME ★"
 			time_label.text = time_text
 			
 		elif is_level_complete:
@@ -1013,6 +1048,13 @@ func _apply_powerup_visual_effects(material, item_type, base_color):
 			#material.set_shader_parameter("base_color", Color.CYAN)
 			debug_print("Applied fish visual effects")
 
+		POWERUP_TIME_FREEZE_TYPE:
+			# Fish effect with swimming animation
+			material.set_shader_parameter("fish_effect", true)
+			material.set_shader_parameter("wave_strength", 0.2)
+			material.set_shader_parameter("wave_frequency", 2.0)
+			#material.set_shader_parameter("base_color", Color.CYAN)
+			debug_print("Applied fish visual effects")
 
 func _reset_shader_parameters(material):
 	"""Reset all shader parameters to default values"""
@@ -1592,7 +1634,9 @@ func _determine_powerup_type(length: int, direction: String, x: int, y: int) -> 
 	
 	# Priority 3: Length-based power-ups
 	match length:
-		7, 8, 9, 10: # Very long matches create fish
+		8,9,10: # Very long matches create time freeze
+			return POWERUP_TIME_FREEZE_TYPE
+		7: # 7 in a line creates fish
 			return POWERUP_FISH_TYPE
 		6: # 6 in a line creates lightning
 			return POWERUP_LIGHTNING_TYPE
@@ -1720,6 +1764,7 @@ func _check_for_l_or_t_shape(x: int, y: int) -> bool:
 
 # --- Enhanced Power-up Effect System ---
 func _trigger_powerup_effect(pos: Vector2, to_remove: Dictionary):
+	return effects._trigger_powerup_effect(pos, to_remove)
 	if _processing_bomb_effects:
 		debug_print("WARNING: Recursive bomb effect prevented")
 		return
@@ -1758,6 +1803,7 @@ func _trigger_powerup_effect(pos: Vector2, to_remove: Dictionary):
 	_processing_bomb_effects = false
 
 func _trigger_bomb_effect(x: int, y: int, to_remove: Dictionary):
+	return effects._trigger_bomb_effect(x, y, to_remove)
 	"""3x3 explosion effect"""
 	debug_print("Triggering bomb effect at (" + str(x) + "," + str(y) + ")")
 	
@@ -1770,6 +1816,7 @@ func _trigger_bomb_effect(x: int, y: int, to_remove: Dictionary):
 				to_remove[tile_pos] = true
 				
 func _trigger_striped_horizontal_effect(x: int, y: int, to_remove: Dictionary):
+	return effects._trigger_striped_horizontal_effect(x, y, to_remove)
 	"""Clear entire row"""
 	debug_print("Triggering horizontal striped effect at row " + str(y))
 	
@@ -1779,6 +1826,7 @@ func _trigger_striped_horizontal_effect(x: int, y: int, to_remove: Dictionary):
 			to_remove[tile_pos] = true
 
 func _trigger_striped_vertical_effect(x: int, y: int, to_remove: Dictionary):
+	return effects._trigger_striped_vertical_effect(x, y, to_remove)
 	"""Clear entire column"""
 	debug_print("Triggering vertical striped effect at column " + str(x))
 	
@@ -1788,6 +1836,7 @@ func _trigger_striped_vertical_effect(x: int, y: int, to_remove: Dictionary):
 			to_remove[tile_pos] = true
 
 func _trigger_wrapped_effect(x: int, y: int, to_remove: Dictionary):
+	return effects._trigger_wrapped_effect(x, y, to_remove)
 	"""3x3 explosion, then second 5x5 explosion after delay"""
 	debug_print("Triggering wrapped effect at (" + str(x) + "," + str(y) + ")")
 	
@@ -1804,6 +1853,7 @@ func _trigger_wrapped_effect(x: int, y: int, to_remove: Dictionary):
 	call_deferred("_trigger_wrapped_second_explosion", x, y)
 
 func _trigger_wrapped_second_explosion(x: int, y: int):
+	return effects._trigger_wrapped_second_explosion(x, y)
 	"""Second explosion for wrapped candy (5x5)"""
 	await get_tree().create_timer(0.3).timeout
 	
@@ -1820,6 +1870,7 @@ func _trigger_wrapped_second_explosion(x: int, y: int):
 		highlight_and_remove(second_to_remove.keys(), true)
 
 func _trigger_color_bomb_effect(x: int, y: int, to_remove: Dictionary):
+	return effects._trigger_color_bomb_effect(x, y, to_remove)
 	"""Remove all tiles of the most common color on the board"""
 	debug_print("Triggering color bomb effect")
 	
@@ -1868,6 +1919,7 @@ func _trigger_color_bomb_effect(x: int, y: int, to_remove: Dictionary):
 
 # This is the specific Time Freeze effect
 func _trigger_time_freeze_effect(x: int, y: int, to_remove: Dictionary):
+	return effects._trigger_time_freeze_effect(x, y, to_remove)
 	"""Activate time freeze powerup - freezes timer for 5 seconds"""
 	debug_print("Triggering time freeze effect")
 	_activate_time_freeze()
@@ -1944,6 +1996,7 @@ func grid_to_world_position(grid_x: int, grid_y: int) -> Vector2:
 	)
 
 func _trigger_lightning_effect(x: int, y: int, to_remove: Dictionary):
+	return effects._trigger_lightning_effect(x, y, to_remove)
 	"""Remove tiles in diagonal directions"""
 	debug_print("Triggering star effect at (" + str(x) + "," + str(y) + ")")
 	
@@ -1967,6 +2020,7 @@ func _trigger_lightning_effect(x: int, y: int, to_remove: Dictionary):
 			current_y += direction.y
 
 func _trigger_fish_effect(x: int, y: int, to_remove: Dictionary):
+	return effects._trigger_fish_effect(x, y, to_remove)
 	"""Fish targets 3-5 random tiles on the board"""
 	debug_print("Triggering fish effect")
 	
@@ -2124,8 +2178,8 @@ func _show_goal_progress_message(color_counts):
 		return
 	
 	# Don't show regular progress messages during golden time (it has its own display)
-	if golden_time_active:
-		return
+	#if golden_time_active:
+		#return
 	
 	var progress_text = ""
 	var phrases = []
@@ -2563,6 +2617,7 @@ func _check_powerup_combination(item1, item2, to_remove: Dictionary):
 	return true
 
 func _trigger_same_powerup_combination(powerup_type: int, pos1: Vector2, pos2: Vector2, to_remove: Dictionary):
+	return effects._trigger_same_powerup_combination(powerup_type, pos1, pos2, to_remove)
 	"""Handle combinations of the same power-up type"""
 	match powerup_type:
 		POWERUP_BOMB_TYPE:
@@ -2599,8 +2654,14 @@ func _trigger_same_powerup_combination(powerup_type: int, pos1: Vector2, pos2: V
 			# Two fish = Fish swarm (targets 8-12 random tiles)
 			_trigger_fish_swarm_effect(to_remove)
 			debug_print("Fish swarm effect triggered!")
+			
+		POWERUP_TIME_FREEZE_TYPE:
+			# Two bombs = Mega bomb (5x5 explosion)
+			_trigger_mega_bomb_effect(pos1, to_remove)
+			debug_print("Mega bomb effect triggered!")	
 
 func _trigger_mixed_powerup_combination(powerup1: int, powerup2: int, pos1: Vector2, pos2: Vector2, to_remove: Dictionary):
+	return effects._trigger_mixed_powerup_combination(powerup1, powerup2, pos1, pos2, to_remove)
 	"""Handle combinations of different power-up types"""
 	var types = [powerup1, powerup2]
 	types.sort()
@@ -2629,6 +2690,7 @@ func _trigger_mixed_powerup_combination(powerup1: int, powerup2: int, pos1: Vect
 
 # Special combination effect implementations
 func _trigger_mega_bomb_effect(pos: Vector2, to_remove: Dictionary):
+	return effects._trigger_mega_bomb_effect(pos, to_remove)
 	"""5x5 explosion around position"""
 	var x = int(pos.x)
 	var y = int(pos.y)
@@ -2641,6 +2703,7 @@ func _trigger_mega_bomb_effect(pos: Vector2, to_remove: Dictionary):
 				to_remove[Vector2(new_x, new_y)] = true
 
 func _trigger_triple_row_effect(center_row: int, to_remove: Dictionary):
+	return effects._trigger_triple_row_effect(center_row, to_remove)
 	"""Clear 3 rows centered on the given row"""
 	for row_offset in range(-1, 2):
 		var target_row = center_row + row_offset
@@ -2649,6 +2712,7 @@ func _trigger_triple_row_effect(center_row: int, to_remove: Dictionary):
 				to_remove[Vector2(x, target_row)] = true
 
 func _trigger_triple_column_effect(center_col: int, to_remove: Dictionary):
+	return effects._trigger_triple_column_effect(center_col, to_remove)
 	"""Clear 3 columns centered on the given column"""
 	for col_offset in range(-1, 2):
 		var target_col = center_col + col_offset
@@ -2657,6 +2721,7 @@ func _trigger_triple_column_effect(center_col: int, to_remove: Dictionary):
 				to_remove[Vector2(target_col, y)] = true
 
 func _trigger_double_wrapped_effect(pos: Vector2, to_remove: Dictionary):
+	return effects._trigger_double_wrapped_effect(pos, to_remove)
 	"""3x3 explosion followed by 7x7 explosion"""
 	var x = int(pos.x)
 	var y = int(pos.y)
@@ -2673,6 +2738,7 @@ func _trigger_double_wrapped_effect(pos: Vector2, to_remove: Dictionary):
 	call_deferred("_trigger_delayed_explosion", x, y, 3)
 
 func _trigger_delayed_explosion(x: int, y: int, radius: int):
+	return effects._trigger_delayed_explosion(x, y, radius)
 	"""Delayed larger explosion for wrapped combo"""
 	await get_tree().create_timer(0.5).timeout
 	
@@ -2688,12 +2754,14 @@ func _trigger_delayed_explosion(x: int, y: int, radius: int):
 		highlight_and_remove(delayed_remove.keys(), true)
 
 func _trigger_clear_board_effect(to_remove: Dictionary):
+	return effects._trigger_clear_board_effect(to_remove)
 	"""Remove all tiles on the board"""
 	for x in range(grid_width):
 		for y in range(grid_height):
 			to_remove[Vector2(x, y)] = true
 
 func _trigger_star_constellation_effect(to_remove: Dictionary):
+	return effects._trigger_star_constellation_effect(to_remove)
 	"""Remove corners and center cross pattern"""
 	# Corner positions
 	var corners = [
@@ -2714,6 +2782,7 @@ func _trigger_star_constellation_effect(to_remove: Dictionary):
 		to_remove[Vector2(center_x, y)] = true
 
 func _trigger_fish_swarm_effect(to_remove: Dictionary):
+	return effects._trigger_fish_swarm_effect(to_remove)
 	"""Target 8-12 random positions"""
 	var available_positions = []
 	for x in range(grid_width):
@@ -2727,6 +2796,7 @@ func _trigger_fish_swarm_effect(to_remove: Dictionary):
 		to_remove[available_positions[i]] = true
 
 func _trigger_color_to_striped_effect(to_remove: Dictionary):
+	return effects._trigger_color_to_striped_effect(to_remove)
 	"""Convert random color to striped, then activate all"""
 	# Find most common color and convert to striped effect
 	var target_color = _find_most_common_color()
@@ -2739,6 +2809,7 @@ func _trigger_color_to_striped_effect(to_remove: Dictionary):
 					_trigger_striped_horizontal_effect(x, y, to_remove)
 
 func _trigger_color_to_wrapped_effect(to_remove: Dictionary):
+	return effects._trigger_color_to_wrapped_effect(to_remove)
 	"""Create 3 random wrapped explosions"""
 	var available_positions = []
 	for x in range(grid_width):
@@ -2751,6 +2822,7 @@ func _trigger_color_to_wrapped_effect(to_remove: Dictionary):
 		_trigger_wrapped_effect(int(pos.x), int(pos.y), to_remove)
 
 func _trigger_color_to_bomb_effect(to_remove: Dictionary):
+	return effects._trigger_color_to_bomb_effect(to_remove)
 	"""Convert random color to bombs then explode all"""
 	var target_color = _find_most_common_color()
 	if target_color >= 0:
@@ -2761,6 +2833,7 @@ func _trigger_color_to_bomb_effect(to_remove: Dictionary):
 					_trigger_bomb_effect(x, y, to_remove)
 
 func _trigger_striped_wrapped_combo(pos: Vector2, to_remove: Dictionary):
+	return effects._trigger_striped_wrapped_combo(pos, to_remove)
 	"""L-shaped mega explosion"""
 	var x = int(pos.x)
 	var y = int(pos.y)
@@ -2847,18 +2920,19 @@ func _check_and_activate_golden_time():
 		_show_golden_time_message()
 
 func _show_golden_time_message():
-	"""Display golden time activation message"""
-	if playerMsg_label != null:
-		playerMsg_label.text = "GOLDEN TIME!"
-		playerMsg_label.modulate = Color(1, 0.8, 0, 1)  # Golden color
-		playerMsg_label.scale = Vector2(1.5, 1.5)  # Larger text
-		playerMsg_label.show()
-		
-		# Make it pulse/glow effect
-		var pulse_tween = create_tween()
-		pulse_tween.set_loops()
-		pulse_tween.tween_property(playerMsg_label, "modulate", Color(1, 1, 0.5, 1), 0.5)
-		pulse_tween.tween_property(playerMsg_label, "modulate", Color(1, 0.8, 0, 1), 0.5)
+	if golden_time_active:
+		"""Display golden time activation message"""
+		if playerMsg_label != null:
+			playerMsg_label.text = "GOLDEN TIME!"
+			playerMsg_label.modulate = Color(1, 0.8, 0, 1)  # Golden color
+			playerMsg_label.scale = Vector2(1.5, 1.5)  # Larger text
+			playerMsg_label.show()
+			
+			# Make it pulse/glow effect
+			var pulse_tween = create_tween()
+			pulse_tween.set_loops()
+			pulse_tween.tween_property(playerMsg_label, "modulate", Color(1, 1, 0.5, 1), 0.5)
+			pulse_tween.tween_property(playerMsg_label, "modulate", Color(1, 0.8, 0, 1), 0.5)
 
 func _deactivate_golden_time():
 	"""Deactivate golden time when conditions are no longer met"""
@@ -2891,7 +2965,7 @@ func _try_spawn_golden_time_powerup():
 				old_item.queue_free()
 			
 			# Create a random high-tier powerup
-			var special_powerups = [POWERUP_COLOR_BOMB_TYPE, POWERUP_LIGHTNING_TYPE, POWERUP_FISH_TYPE]
+			var special_powerups = [POWERUP_COLOR_BOMB_TYPE, POWERUP_TIME_FREEZE_TYPE]
 			var powerup_type = special_powerups[randi() % special_powerups.size()]
 			var base_color = randi() % colors.size()
 			

@@ -83,7 +83,7 @@ var level_label: Label
 var color_textures: Dictionary = {}
 var is_processing_cascade = false # Prevents input during match cascades
 var _processing_bomb_effects = false
-#Gloden time mechanic
+#Golden time mechanic
 var golden_time_active = false
 var golden_time_score_multiplier = 2
 var golden_time_bonus_per_match = 0.5
@@ -94,7 +94,7 @@ var golden_time_extensions_used = 0
 var time_freeze_active = false
 var time_freeze_duration = 5.0
 var time_freeze_remaining = 0.0
-
+var golden_time_tween: Tween = null
 
 func _preload_powerup_textures():
 	"""Preload all power-up sprite textures"""
@@ -216,7 +216,9 @@ func _is_any_powerup(item_type):
 	return item_type >= POWERUP_BOMB_TYPE
 
 func _get_powerup_type(item_type):
-	if item_type >= POWERUP_FISH_TYPE:
+	if item_type >= POWERUP_TIME_FREEZE_TYPE:
+		return POWERUP_TIME_FREEZE_TYPE
+	elif item_type >= POWERUP_FISH_TYPE:
 		return POWERUP_FISH_TYPE
 	elif item_type >= POWERUP_LIGHTNING_TYPE:
 		return POWERUP_LIGHTNING_TYPE
@@ -230,8 +232,6 @@ func _get_powerup_type(item_type):
 		return POWERUP_STRIPED_H_TYPE
 	elif item_type >= POWERUP_BOMB_TYPE:
 		return POWERUP_BOMB_TYPE
-	elif item_type >= POWERUP_TIME_FREEZE_TYPE:
-		return POWERUP_TIME_FREEZE_TYPE
 	return 0
 
 func _get_base_type(item_type):
@@ -518,6 +518,10 @@ func start_level(level_number: int):
 	_deactivate_golden_time()
 	golden_time_extensions_used = 0
 	
+	# FIXED: Reset time freeze state
+	time_freeze_active = false
+	time_freeze_remaining = 0.0
+	
 	# IMPORTANT: Clear existing grid FIRST before loading new level
 	_clear_grid()
 	
@@ -548,7 +552,6 @@ func start_level(level_number: int):
 
 
 
-
 func advance_to_next_level():
 	"""Progress to the next level"""
 	var next_level = current_level_number + 1
@@ -567,10 +570,19 @@ func restart_level():
 	score = 0 # This resets the points from the failed level.
 	_deactivate_golden_time()
 	golden_time_extensions_used = 0
+	
+	# FIXED: Properly reset time freeze state
 	time_freeze_active = false
 	time_freeze_remaining = 0.0
+	
 	debug_print("Restarting level " + str(next_level))
-	playerMsg_label.text = ""
+	
+	# FIXED: Reset playerMsg properly
+	if playerMsg_label != null:
+		playerMsg_label.text = ""
+		playerMsg_label.modulate = Color.WHITE
+		playerMsg_label.scale = Vector2(1, 1)
+	
 	start_level(next_level)
 
 
@@ -605,6 +617,7 @@ func _ready():
 	# Load power-up textures
 	_preload_powerup_textures()
 	
+	
 	# Test powerup creation
 	#add_test_powerups()
 	
@@ -613,7 +626,7 @@ func _ready():
 	#add_shop_powerups(purchased)
 	# Add 2 lightning powerups to the next level:
 	add_single_powerup(POWERUP_TIME_FREEZE_TYPE, 2)
-	
+	call_deferred("debug_time_freeze_powerup")
 	# Start with predefined level (deferred to ensure everything is ready)
 	call_deferred("start_level", current_level_number)
 	call_deferred("debug_texture_status")
@@ -750,21 +763,33 @@ func _process(delta):
 	
 	# NEW: Check for golden time activation
 	_check_and_activate_golden_time()
-		
+	
 	# Update the game state and UI every frame.
 	if time_label != null:
 		if not is_game_over and not is_level_complete:
-			time_left -= delta
+			# FIXED: Only decrease time if time freeze is not active
+			if not time_freeze_active:
+				time_left -= delta
+			else:
+				# Update time freeze remaining
+				time_freeze_remaining -= delta
+				if time_freeze_remaining <= 0:
+					time_freeze_active = false
+					debug_print("Time freeze ended")
+					# Update display to show time freeze ended
+					_update_time_freeze_display()
+			
 			if time_left <= 0:
 				time_left = 0
-				_deactivate_golden_time()  # NEW: Deactivate golden time when game ends
+				_deactivate_golden_time()  # Deactivate golden time when game ends
 				game_over()
-			if time_left >3:
-				_deactivate_golden_time()  # NEW: Deactivate golden time when game ends
-
+			if time_left > 3:
+				_deactivate_golden_time()  # Deactivate golden time when time > 3
 			
-			# NEW: Update time display with golden time indicator
+			# FIXED: Update time display with time freeze indicator
 			var time_text = "Time: " + str(int(time_left)) + "\nScore: " + str(score)
+			if time_freeze_active:
+				time_text += "\nFROZEN: " + str(int(time_freeze_remaining))
 			time_label.text = time_text
 			
 		elif is_level_complete:
@@ -773,8 +798,21 @@ func _process(delta):
 			game_over()
 	
 	_update_goal_display()
+	
 
-# --- Safety Functions ---
+func _update_time_freeze_display():
+	"""Update display when time freeze status changes"""
+	if playerMsg_label != null and not golden_time_active:
+		if time_freeze_active:
+			playerMsg_label.text = "TIME FROZEN!"
+			playerMsg_label.modulate = Color(0.5, 0.5, 1, 1)  # Blue color
+			playerMsg_label.scale = Vector2(1.2, 1.2)
+		else:
+			# Time freeze ended - reset to normal
+			playerMsg_label.text = ""
+			playerMsg_label.modulate = Color.WHITE
+			playerMsg_label.scale = Vector2(1, 1)
+
 func _is_grid_ready() -> bool:
 	return grid_data.size() == grid_width and (grid_data.size() == 0 or grid_data[0].size() == grid_height)
 
@@ -862,6 +900,7 @@ func _create_item(item_type, x, y, is_bomb = false, powerup_type = 0):
 		# Fallback for old bomb creation method
 		final_item_type = POWERUP_BOMB_TYPE + item_type
 		debug_print("Creating bomb item (legacy): final=" + str(final_item_type))
+	
 	item_instance.item_type = final_item_type
 	item_instance.grid_x = x
 	item_instance.grid_y = y
@@ -873,17 +912,29 @@ func _create_item(item_type, x, y, is_bomb = false, powerup_type = 0):
 	# Set the appropriate texture for powerups
 	var powerup_offset = _get_powerup_type(final_item_type)
 	debug_print("DEBUG: final_item_type=" + str(final_item_type) + " powerup_offset=" + str(powerup_offset))
-	debug_print("DEBUG: powerup_textures keys: " + str(powerup_textures.keys()))
-	debug_print("DEBUG: Current texture: " + str(sprite_instance.texture))
+	
+	# FIXED: Special debug for time freeze
+	if powerup_offset == POWERUP_TIME_FREEZE_TYPE:
+		debug_print("CREATING TIME FREEZE POWERUP!")
+		debug_print("Time freeze texture exists: " + str(powerup_textures.has(POWERUP_TIME_FREEZE_TYPE)))
+		debug_print("Time freeze texture: " + str(powerup_textures.get(POWERUP_TIME_FREEZE_TYPE, "NOT_FOUND")))
 	
 	if powerup_offset > 0 and powerup_textures.has(powerup_offset):
 		var old_texture = sprite_instance.texture
 		sprite_instance.texture = powerup_textures[powerup_offset]
 		debug_print("Applied powerup texture for type: " + str(powerup_offset))
-		debug_print("DEBUG: Texture changed from " + str(old_texture) + " to " + str(sprite_instance.texture))
+		
+		# FIXED: Additional debug for time freeze
+		if powerup_offset == POWERUP_TIME_FREEZE_TYPE:
+			debug_print("TIME FREEZE SPRITE APPLIED!")
 	else:
 		debug_print("DEBUG: No texture change - powerup_offset=" + str(powerup_offset) + " has_texture=" + str(powerup_textures.has(powerup_offset)))
+		
+		# FIXED: Special handling if time freeze texture is missing
+		if powerup_offset == POWERUP_TIME_FREEZE_TYPE:
+			debug_print("ERROR: Time freeze texture not found!")
 	
+	# Rest of the function stays the same...
 	# Create new material instance - IMPORTANT for shader effects
 	var new_material = null
 	if sprite_instance.material != null:
@@ -906,9 +957,11 @@ func _create_item(item_type, x, y, is_bomb = false, powerup_type = 0):
 		debug_print("WARNING: Invalid color type: " + str(base_type))
 		# Set a default color
 		new_material.set_shader_parameter("base_color", Color.WHITE)
+	
 	var tex_size = sprite_instance.texture.get_size()
 	var scale_factor = cell_size / tex_size.x
 	sprite_instance.scale = Vector2(scale_factor, scale_factor)
+	
 	# Position calculation
 	var extra_offset_x = 0.0
 	var extra_offset_y = 0.0
@@ -928,8 +981,6 @@ func _create_item(item_type, x, y, is_bomb = false, powerup_type = 0):
 	
 	add_child(item_instance)
 	return item_instance
-
-# Complete _create_item function with sprite support
 
 func debug_texture_status():
 	debug_print("=== TEXTURE DEBUG STATUS ===")
@@ -1586,7 +1637,6 @@ func _process_match(x: int, y: int, direction: String, length: int, to_remove: D
 				to_remove[item_pos] = true
 
 
-# Updated _determine_powerup_type function with swapped conditions
 func _determine_powerup_type(length: int, direction: String, x: int, y: int) -> int:
 	"""Determine what type of power-up to create based on match characteristics"""
 	
@@ -1602,7 +1652,8 @@ func _determine_powerup_type(length: int, direction: String, x: int, y: int) -> 
 	
 	# Priority 3: Length-based power-ups
 	match length:
-		8,9,10: # Very long matches create time freeze
+		8,9,10: # FIXED: Very long matches create time freeze
+			debug_print("Creating TIME_FREEZE from " + str(length) + " match")
 			return POWERUP_TIME_FREEZE_TYPE
 		7: # 7 in a line creates fish
 			return POWERUP_FISH_TYPE
@@ -1617,7 +1668,6 @@ func _determine_powerup_type(length: int, direction: String, x: int, y: int) -> 
 				return POWERUP_STRIPED_H_TYPE  # Vertical match creates horizontal striped
 		_:
 			return 0  # No power-up for matches less than 4
-			
 			
 			
 func _is_corner_match(x: int, y: int, length: int, direction: String) -> bool:
@@ -1878,7 +1928,6 @@ func _trigger_color_bomb_effect(x: int, y: int, to_remove: Dictionary):
 		for grid_pos in target_positions:
 			to_remove[grid_pos] = true
 
-# This is the specific Time Freeze effect
 func _trigger_time_freeze_effect(x: int, y: int, to_remove: Dictionary):
 	"""Activate time freeze powerup - freezes timer for 5 seconds"""
 	debug_print("Triggering time freeze effect")
@@ -1892,17 +1941,18 @@ func _trigger_time_freeze_effect(x: int, y: int, to_remove: Dictionary):
 			if _is_inside_grid(new_x, new_y):
 				var tile_pos = Vector2(new_x, new_y)
 				to_remove[tile_pos] = true
+				
+				
 
-# This sets the freeze state
 func _activate_time_freeze():
 	"""Activate time freeze powerup"""
 	time_freeze_active = true
 	time_freeze_remaining = time_freeze_duration  # 5.0 seconds
 	debug_print("TIME FREEZE ACTIVATED for " + str(time_freeze_duration) + " seconds!")
 	
-	# Update golden time message to show freeze status
-	if golden_time_active:
-		_show_golden_time_message()
+	# Update display - but don't conflict with golden time
+	if not golden_time_active:
+		_update_time_freeze_display()
 
 
 func launch_synchronized_missiles(start_pos: Vector2, target_positions: Array, color_type: int, total_time: float):
@@ -2864,19 +2914,22 @@ func _check_and_activate_golden_time():
 		_show_golden_time_message()
 
 func _show_golden_time_message():
-	if golden_time_active:
-		"""Display golden time activation message"""
-		if playerMsg_label != null:
-			playerMsg_label.text = "GOLDEN TIME!"
-			playerMsg_label.modulate = Color(1, 0.8, 0, 1)  # Golden color
-			playerMsg_label.scale = Vector2(1.5, 1.5)  # Larger text
-			playerMsg_label.show()
-			
-			# Make it pulse/glow effect
-			var pulse_tween = create_tween()
-			pulse_tween.set_loops()
-			pulse_tween.tween_property(playerMsg_label, "modulate", Color(1, 1, 0.5, 1), 0.5)
-			pulse_tween.tween_property(playerMsg_label, "modulate", Color(1, 0.8, 0, 1), 0.5)
+	"""Display golden time activation message with proper tween management"""
+	if golden_time_active and playerMsg_label != null:
+		# Stop any existing tween first
+		if golden_time_tween != null:
+			golden_time_tween.kill()
+		
+		playerMsg_label.text = "GOLDEN TIME!"
+		playerMsg_label.modulate = Color(1, 0.8, 0, 1)  # Golden color
+		playerMsg_label.scale = Vector2(1.5, 1.5)  # Larger text
+		playerMsg_label.show()
+		
+		# Create new pulsing tween
+		golden_time_tween = create_tween()
+		golden_time_tween.set_loops()
+		golden_time_tween.tween_property(playerMsg_label, "modulate", Color(1, 1, 0.5, 1), 0.5)
+		golden_time_tween.tween_property(playerMsg_label, "modulate", Color(1, 0.8, 0, 1), 0.5)
 
 func _deactivate_golden_time():
 	"""Deactivate golden time when conditions are no longer met"""
@@ -2884,12 +2937,21 @@ func _deactivate_golden_time():
 		golden_time_active = false
 		debug_print("Golden Time deactivated")
 		
-		# Reset playerMsg display
+		# FIXED: Stop the pulsing tween properly
+		if golden_time_tween != null:
+			golden_time_tween.kill()
+			golden_time_tween = null
+		
+		# Reset playerMsg display to normal state
 		if playerMsg_label != null:
 			playerMsg_label.scale = Vector2(1, 1)
 			playerMsg_label.modulate = Color.WHITE
 			playerMsg_label.text = ""
-
+			
+			# If time freeze is still active, show that instead
+			if time_freeze_active:
+				_update_time_freeze_display()
+				
 func _try_spawn_golden_time_powerup():
 	"""Try to spawn a special powerup during golden time"""
 	if randf() < golden_time_powerup_chance:
@@ -2908,8 +2970,8 @@ func _try_spawn_golden_time_powerup():
 			if old_item != null and is_instance_valid(old_item):
 				old_item.queue_free()
 			
-			# Create a random high-tier powerup
-			var special_powerups = [POWERUP_COLOR_BOMB_TYPE, POWERUP_TIME_FREEZE_TYPE]
+			# FIXED: Include time freeze in special powerups array
+			var special_powerups = [POWERUP_COLOR_BOMB_TYPE, POWERUP_TIME_FREEZE_TYPE, POWERUP_LIGHTNING_TYPE]
 			var powerup_type = special_powerups[randi() % special_powerups.size()]
 			var base_color = randi() % colors.size()
 			
@@ -2917,3 +2979,25 @@ func _try_spawn_golden_time_powerup():
 			if new_item != null:
 				_safe_set_grid_item(int(pos.x), int(pos.y), new_item)
 				debug_print("Golden Time spawned special powerup: " + str(powerup_type))
+				
+				
+				
+func debug_time_freeze_powerup():
+	"""Debug function to test time freeze powerup specifically"""
+	debug_print("=== TIME FREEZE POWERUP DEBUG ===")
+	debug_print("POWERUP_TIME_FREEZE_TYPE constant: " + str(POWERUP_TIME_FREEZE_TYPE))
+	debug_print("Time freeze texture loaded: " + str(powerup_textures.has(POWERUP_TIME_FREEZE_TYPE)))
+	if powerup_textures.has(POWERUP_TIME_FREEZE_TYPE):
+		debug_print("Time freeze texture: " + str(powerup_textures[POWERUP_TIME_FREEZE_TYPE]))
+	
+	# Test creation
+	debug_print("Testing time freeze creation...")
+	var test_item = _create_item(0, 0, 0, false, POWERUP_TIME_FREEZE_TYPE)
+	if test_item != null:
+		debug_print("Time freeze item created successfully!")
+		debug_print("Item type: " + str(test_item.item_type))
+		debug_print("Expected type: " + str(POWERUP_TIME_FREEZE_TYPE))
+		test_item.queue_free()  # Clean up test item
+	else:
+		debug_print("ERROR: Failed to create time freeze item!")
+	debug_print("=== END TIME FREEZE DEBUG ===")				
