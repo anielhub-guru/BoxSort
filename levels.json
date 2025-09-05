@@ -87,7 +87,7 @@
 		"rows": 4,
 		"cols": 4
 	  },
-	  "time_limit_seconds": 55,
+	  "time_limit_seconds": 10,
 	  "level_goals": {
 		"0": 15,
 		"1": 15,

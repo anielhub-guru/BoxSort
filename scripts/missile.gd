@@ -135,12 +135,12 @@ func _on_tween_finished(target_pos: Vector2):
 
 func _create_screen_shake(intensity: float, duration: float):
 	"""Create screen shake effect using UI container"""
-	var game_manager = get_tree().current_scene
-	if game_manager and game_manager.has_method("create_screen_shake"):
-		game_manager.create_screen_shake(intensity, duration)
+	var hud_node = get_tree().current_scene
+	if hud_node and hud_node.has_method("create_screen_shake"):
+		hud_node.create_screen_shake(intensity, duration)
 		print_rich("[color=gold] has_create_screen_shake [/color]")
 	else:
-		print("Could not find game manager for screen shake")
+		print("Could not find HUD node for screen shake")
 
 
 # Utility function to create missile programmatically

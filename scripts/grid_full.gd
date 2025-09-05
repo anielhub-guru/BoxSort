@@ -1,7 +1,7 @@
 # grid.gd
 
 extends Node2D
-class_name GameManager
+class_name GameManager3
 const POWERUP_BOMB_TYPE = 100      # 3x3 explosion (existing)
 const POWERUP_STRIPED_H_TYPE = 200 # Horizontal striped candy
 const POWERUP_STRIPED_V_TYPE = 300 # Vertical striped candy
@@ -230,8 +230,6 @@ func _get_powerup_type(item_type):
 		return POWERUP_STRIPED_H_TYPE
 	elif item_type >= POWERUP_BOMB_TYPE:
 		return POWERUP_BOMB_TYPE
-	elif item_type >= POWERUP_TIME_FREEZE_TYPE:
-		return POWERUP_TIME_FREEZE_TYPE
 	return 0
 
 func _get_base_type(item_type):
@@ -759,12 +757,11 @@ func _process(delta):
 				time_left = 0
 				_deactivate_golden_time()  # NEW: Deactivate golden time when game ends
 				game_over()
-			if time_left >3:
-				_deactivate_golden_time()  # NEW: Deactivate golden time when game ends
-
 			
 			# NEW: Update time display with golden time indicator
 			var time_text = "Time: " + str(int(time_left)) + "\nScore: " + str(score)
+			if golden_time_active:
+				time_text += "\n★ GOLDEN TIME ★"
 			time_label.text = time_text
 			
 		elif is_level_complete:
@@ -1016,13 +1013,6 @@ func _apply_powerup_visual_effects(material, item_type, base_color):
 			#material.set_shader_parameter("base_color", Color.CYAN)
 			debug_print("Applied fish visual effects")
 
-		POWERUP_TIME_FREEZE_TYPE:
-			# Fish effect with swimming animation
-			material.set_shader_parameter("fish_effect", true)
-			material.set_shader_parameter("wave_strength", 0.2)
-			material.set_shader_parameter("wave_frequency", 2.0)
-			#material.set_shader_parameter("base_color", Color.CYAN)
-			debug_print("Applied fish visual effects")
 
 func _reset_shader_parameters(material):
 	"""Reset all shader parameters to default values"""
@@ -1602,9 +1592,7 @@ func _determine_powerup_type(length: int, direction: String, x: int, y: int) -> 
 	
 	# Priority 3: Length-based power-ups
 	match length:
-		8,9,10: # Very long matches create time freeze
-			return POWERUP_TIME_FREEZE_TYPE
-		7: # 7 in a line creates fish
+		7, 8, 9, 10: # Very long matches create fish
 			return POWERUP_FISH_TYPE
 		6: # 6 in a line creates lightning
 			return POWERUP_LIGHTNING_TYPE
@@ -2136,8 +2124,8 @@ func _show_goal_progress_message(color_counts):
 		return
 	
 	# Don't show regular progress messages during golden time (it has its own display)
-	#if golden_time_active:
-		#return
+	if golden_time_active:
+		return
 	
 	var progress_text = ""
 	var phrases = []
@@ -2611,11 +2599,6 @@ func _trigger_same_powerup_combination(powerup_type: int, pos1: Vector2, pos2: V
 			# Two fish = Fish swarm (targets 8-12 random tiles)
 			_trigger_fish_swarm_effect(to_remove)
 			debug_print("Fish swarm effect triggered!")
-			
-		POWERUP_TIME_FREEZE_TYPE:
-			# Two bombs = Mega bomb (5x5 explosion)
-			_trigger_mega_bomb_effect(pos1, to_remove)
-			debug_print("Mega bomb effect triggered!")	
 
 func _trigger_mixed_powerup_combination(powerup1: int, powerup2: int, pos1: Vector2, pos2: Vector2, to_remove: Dictionary):
 	"""Handle combinations of different power-up types"""
@@ -2864,19 +2847,18 @@ func _check_and_activate_golden_time():
 		_show_golden_time_message()
 
 func _show_golden_time_message():
-	if golden_time_active:
-		"""Display golden time activation message"""
-		if playerMsg_label != null:
-			playerMsg_label.text = "GOLDEN TIME!"
-			playerMsg_label.modulate = Color(1, 0.8, 0, 1)  # Golden color
-			playerMsg_label.scale = Vector2(1.5, 1.5)  # Larger text
-			playerMsg_label.show()
-			
-			# Make it pulse/glow effect
-			var pulse_tween = create_tween()
-			pulse_tween.set_loops()
-			pulse_tween.tween_property(playerMsg_label, "modulate", Color(1, 1, 0.5, 1), 0.5)
-			pulse_tween.tween_property(playerMsg_label, "modulate", Color(1, 0.8, 0, 1), 0.5)
+	"""Display golden time activation message"""
+	if playerMsg_label != null:
+		playerMsg_label.text = "GOLDEN TIME!"
+		playerMsg_label.modulate = Color(1, 0.8, 0, 1)  # Golden color
+		playerMsg_label.scale = Vector2(1.5, 1.5)  # Larger text
+		playerMsg_label.show()
+		
+		# Make it pulse/glow effect
+		var pulse_tween = create_tween()
+		pulse_tween.set_loops()
+		pulse_tween.tween_property(playerMsg_label, "modulate", Color(1, 1, 0.5, 1), 0.5)
+		pulse_tween.tween_property(playerMsg_label, "modulate", Color(1, 0.8, 0, 1), 0.5)
 
 func _deactivate_golden_time():
 	"""Deactivate golden time when conditions are no longer met"""
@@ -2909,7 +2891,7 @@ func _try_spawn_golden_time_powerup():
 				old_item.queue_free()
 			
 			# Create a random high-tier powerup
-			var special_powerups = [POWERUP_COLOR_BOMB_TYPE, POWERUP_TIME_FREEZE_TYPE]
+			var special_powerups = [POWERUP_COLOR_BOMB_TYPE, POWERUP_LIGHTNING_TYPE, POWERUP_FISH_TYPE]
 			var powerup_type = special_powerups[randi() % special_powerups.size()]
 			var base_color = randi() % colors.size()
 			

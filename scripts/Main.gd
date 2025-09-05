@@ -5,8 +5,8 @@ extends Control
 func _ready() -> void:
 	play_label.mouse_filter = Control.MOUSE_FILTER_STOP  # IMPORTANT!
 	play_label.pivot_offset = play_label.size / 2
-	play_label.gui_input.connect(_on_play_label_gui_input)
-	play_label.mouse_entered.connect(_on_play_label_mouse_entered)
+	#play_label.gui_input.connect(_on_play_label_gui_input)
+	#play_label.mouse_entered.connect(_on_play_label_mouse_entered)
 	play_label.mouse_exited.connect(_on_play_label_mouse_exited)
 	
 
