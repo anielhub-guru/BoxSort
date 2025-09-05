@@ -1,7 +1,7 @@
 # grid.gd
 
 extends Node2D
-class_name GameManager
+class_name GameManager2
 
 var effects
 
