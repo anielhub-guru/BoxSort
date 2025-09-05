@@ -626,7 +626,6 @@ func _ready():
 	#add_shop_powerups(purchased)
 	# Add 2 lightning powerups to the next level:
 	add_single_powerup(POWERUP_TIME_FREEZE_TYPE, 2)
-	call_deferred("debug_time_freeze_powerup")
 	# Start with predefined level (deferred to ensure everything is ready)
 	call_deferred("start_level", current_level_number)
 	call_deferred("debug_texture_status")
@@ -2981,23 +2980,4 @@ func _try_spawn_golden_time_powerup():
 				debug_print("Golden Time spawned special powerup: " + str(powerup_type))
 				
 				
-				
-func debug_time_freeze_powerup():
-	"""Debug function to test time freeze powerup specifically"""
-	debug_print("=== TIME FREEZE POWERUP DEBUG ===")
-	debug_print("POWERUP_TIME_FREEZE_TYPE constant: " + str(POWERUP_TIME_FREEZE_TYPE))
-	debug_print("Time freeze texture loaded: " + str(powerup_textures.has(POWERUP_TIME_FREEZE_TYPE)))
-	if powerup_textures.has(POWERUP_TIME_FREEZE_TYPE):
-		debug_print("Time freeze texture: " + str(powerup_textures[POWERUP_TIME_FREEZE_TYPE]))
 	
-	# Test creation
-	debug_print("Testing time freeze creation...")
-	var test_item = _create_item(0, 0, 0, false, POWERUP_TIME_FREEZE_TYPE)
-	if test_item != null:
-		debug_print("Time freeze item created successfully!")
-		debug_print("Item type: " + str(test_item.item_type))
-		debug_print("Expected type: " + str(POWERUP_TIME_FREEZE_TYPE))
-		test_item.queue_free()  # Clean up test item
-	else:
-		debug_print("ERROR: Failed to create time freeze item!")
-	debug_print("=== END TIME FREEZE DEBUG ===")				
