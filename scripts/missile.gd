@@ -26,73 +26,25 @@ func fire(start_position: Vector2, target_position: Vector2, duration: float = 1
 	# Set starting position
 	position = start_position
 	
-	# Calculate rotation to face target
+	# FIXED: Calculate rotation to face target properly
 	var direction = target_position - start_position
-	rotation = direction.angle()
+	rotation = direction.angle() + PI/2  # Add PI/2 to correct sprite orientation
 	
 	# Stop existing tween if it exists
 	if tween != null and tween.is_valid():
 		tween.kill()
 	
-	# Create smooth movement tween with easing for homing effect
+	# FIXED: Use faster easing for quick missile movement
 	tween = create_tween()
-	tween.set_ease(Tween.EASE_IN_OUT)
-	tween.set_trans(Tween.TRANS_CUBIC)
+	tween.set_ease(Tween.EASE_IN)
+	tween.set_trans(Tween.TRANS_QUAD)
 	
-	# Animate position
+	# Animate position with faster timing
 	tween.tween_property(self, "position", target_position, duration)
 	
 	# Connect completion signal
 	tween.finished.connect(_on_tween_finished.bind(target_position))
 
-func fire_with_arc(start_position: Vector2, target_position: Vector2, target_time: float, arc_height: float = 50.0):
-	"""Fire missile to arrive at target_position at exactly target_time - IMPROVED VERSION"""
-	
-	position = start_position
-	
-	# Ensure minimum flight time
-	var flight_duration = max(target_time, 0.3)
-	
-	# Calculate distance for arc height scaling
-	var distance = start_position.distance_to(target_position)
-	var scaled_arc_height = arc_height * min(distance / 200.0, 1.5)  # Scale arc with distance
-	
-	# Calculate midpoint with arc
-	var midpoint = (start_position + target_position) * 0.5
-	midpoint.y -= scaled_arc_height
-	
-	# Initial rotation towards target
-	var direction = target_position - start_position
-	rotation = direction.angle()
-	
-	# Stop existing tween if it exists
-	if tween != null and tween.is_valid():
-		tween.kill()
-	
-	tween = create_tween()
-	tween.set_parallel(true)
-	
-	# Improved two-phase movement with better easing
-	var phase1_time = flight_duration * 0.4
-	var phase2_time = flight_duration * 0.6
-	
-	# Phase 1: Accelerate to midpoint
-	tween.tween_property(self, "position", midpoint, phase1_time)\
-		.set_ease(Tween.EASE_OUT)\
-		.set_trans(Tween.TRANS_SINE)
-	
-	# Phase 2: Decelerate to target (missile-like homing)
-	tween.tween_property(self, "position", target_position, phase2_time)\
-		.set_ease(Tween.EASE_IN)\
-		.set_trans(Tween.TRANS_CUBIC)\
-		.set_delay(phase1_time)
-	
-	# Smooth rotation that follows trajectory
-	var rotation_tween = tween.tween_method(_update_rotation_to_target, 0.0, 1.0, flight_duration)
-	rotation_tween.set_ease(Tween.EASE_IN_OUT)
-	
-	# Connect completion
-	tween.finished.connect(_on_tween_finished.bind(target_position))
 
 func _update_rotation_to_target(progress: float):
 	"""Update missile rotation to follow trajectory - IMPROVED VERSION"""

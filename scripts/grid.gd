@@ -24,6 +24,7 @@ func _handle_cascade():
 		
 		if matches_found_in_round:			
 			debug_print("Cascade Round " + str(cascade_round) + ": Matches found. Applying gravity and refilling.")
+			# Ensure gravity and refill happen in sequence
 			await apply_gravity()
 			await refill_grid()
 		else:
@@ -34,7 +35,8 @@ func _handle_cascade():
 		debug_print("WARNING: Maximum cascade rounds reached!")
 	
 	debug_print("--- Cascade Complete ---")
-
+	
+	
 func apply_gravity():
 	debug_print("Applying gravity...")
 	var tween = create_tween().set_parallel(true)
@@ -318,6 +320,16 @@ func debug_texture_status():
 	debug_print("powerup_textures size: " + str(powerup_textures.size()))
 	debug_print("colors array size: " + str(colors.size()))
 	debug_print("=== END TEXTURE DEBUG ===")
+
+	
+func _clear_position_cache():
+	"""Clear the position cache when grid layout changes"""
+	if has_meta("grid_position_cache"):
+		set_meta("grid_position_cache", {})
+
+func _execute_callable(callable: Callable):
+	"""Helper function to execute deferred callables"""
+	callable.call()
 
 # ============================================================================
 # POWERUP CONFIGURATION
@@ -791,7 +803,8 @@ func _trigger_same_powerup_combination(powerup_type: int, pos1: Vector2, pos2: V
 		PowerupType.TIME_FREEZE:
 			_trigger_mega_bomb_effect(pos1, to_remove)
 			debug_print("Mega bomb effect triggered!")
-
+			
+			
 func _trigger_mixed_powerup_combination(powerup1: int, powerup2: int, pos1: Vector2, pos2: Vector2, to_remove: Dictionary):
 	"""Handle combinations of different power-up types"""
 	var types = [powerup1, powerup2]
@@ -857,9 +870,11 @@ func _trigger_double_wrapped_effect(pos: Vector2, to_remove: Dictionary):
 			if _is_inside_grid(new_x, new_y):
 				to_remove[Vector2(new_x, new_y)] = true
 	
-	# Schedule larger explosion
-	call_deferred("_trigger_delayed_explosion", x, y, 3)
-
+	# Schedule larger explosion - FIXED
+	var delayed_callable = func(): _trigger_delayed_explosion(x, y, 3)
+	call_deferred("_execute_callable", delayed_callable)
+	
+	
 func _trigger_delayed_explosion(x: int, y: int, radius: int):
 	"""Delayed larger explosion for wrapped combo"""
 	await get_tree().create_timer(0.5).timeout
@@ -874,6 +889,8 @@ func _trigger_delayed_explosion(x: int, y: int, radius: int):
 	
 	if delayed_remove.size() > 0:
 		highlight_and_remove(delayed_remove.keys(), true)
+		
+	
 
 func _trigger_clear_board_effect(to_remove: Dictionary):
 	"""Remove all tiles on the board"""
@@ -1152,7 +1169,7 @@ func _setup_ui_references():
 		restart_level_btn.pressed.connect(_on_restart_level_button_pressed)
 
 func _configure_test_powerups():
-	add_single_powerup(PowerupType.TIME_FREEZE, 2)
+	add_single_powerup(PowerupType.COLOR_BOMB, 2)
 
 # ============================================================================
 # LEVEL MANAGEMENT
@@ -1285,6 +1302,7 @@ func _process(delta):
 	if not _game_initialized:
 		return
 	
+
 	_update_time_system(delta)
 	_check_and_activate_golden_time()
 	_update_ui_display()
@@ -1480,6 +1498,39 @@ func _update_level_display(level_number: int):
 			debug_print("WARNING: Level Label node not found!")
 	else:
 		debug_print("WARNING: UI VBoxContainer not found for level display update!")
+
+
+func grid_to_world_position(grid_x: int, grid_y: int) -> Vector2:
+	"""Convert grid coordinates to world position - optimized version"""
+	# Cache the calculation for better performance
+	if not has_meta("grid_position_cache"):
+		set_meta("grid_position_cache", {})
+	
+	var cache = get_meta("grid_position_cache")
+	var cache_key = str(grid_x) + "," + str(grid_y)
+	
+	if cache.has(cache_key):
+		return cache[cache_key]
+	
+	var extra_offset_x = 0.0
+	var extra_offset_y = 0.0
+	
+	if use_shelf_gaps:
+		extra_offset_x = (grid_x / 3.0) * shelf_gap_x
+		extra_offset_y = (grid_y / 1.0) * shelf_gap_y
+	else:
+		extra_offset_x = grid_x * shelf_gap_x
+		extra_offset_y = grid_y * shelf_gap_y
+	
+	var world_pos = Vector2(
+		grid_x * cell_size + cell_size / 2 + extra_offset_x,
+		grid_y * cell_size + cell_size / 2 + extra_offset_y
+	)
+	
+	# Cache the result
+	cache[cache_key] = world_pos
+	return world_pos
+
 
 # ============================================================================
 # ITEM CREATION AND MANAGEMENT
@@ -1723,21 +1774,21 @@ func _process_match(x: int, y: int, direction: MatchDirection, length: int, to_r
 				to_remove[item_pos] = true
 
 func highlight_and_remove(matched_positions: Array, is_bomb_effect: bool = false, delay_time: float = 0.0, color_type: int = 0):
-	"""Highlight and remove tiles with optional delay for missile synchronization"""
-	debug_print("Highlighting and removing " + str(matched_positions.size()) + " tiles with " + str(delay_time) + "s delay.")
+	"""Highlight and remove tiles with audio per removal event"""
+	debug_print("Highlighting and removing " + str(matched_positions.size()) + " tiles")
 	
+	# Only play audio if tiles are actually being removed
+	if matched_positions.size() > 0:
+		_play_tile_removal_audio()
+	
+	# Track progress and score immediately (don't wait for missiles)
 	_track_goal_progress(matched_positions) 
 	add_score(matched_positions.size())
 	
-	# Immediate highlighting (no removal yet if there's a delay)
-	if delay_time > 0.0:
-		# Just highlight tiles while missiles fly
-		for pos in matched_positions:
-			var gx = int(pos.x)
-			var gy = int(pos.y)
-			var item = _safe_get_grid_item(gx, gy)
-		# Wait for missiles to hit
-		await get_tree().create_timer(delay_time).timeout
+	# For color bomb effects, wait for missiles to hit
+	if delay_time > 0.0 or (is_bomb_effect and color_type >= 0):
+		var missile_delay = 0.2  # Wait for missiles to hit
+		await get_tree().create_timer(missile_delay).timeout
 	
 	# Visual effects based on effect type
 	if is_bomb_effect:
@@ -1751,16 +1802,15 @@ func highlight_and_remove(matched_positions: Array, is_bomb_effect: bool = false
 				var explosion_color = colors[color_type] if color_type < colors.size() else Color.WHITE
 				var sprite = item.get_node_or_null("Sprite2D")
 				if sprite != null:
-					tween.tween_property(item, "scale", Vector2(1.2, 1.2), 0.1)
-					tween.tween_property(item, "scale", Vector2(0, 0), 0.3).set_delay(0.1)
-				# Explode particle effect with matching color
-				var explosion = explosion_scene.instantiate()
-				get_tree().current_scene.add_child(explosion)
-				explosion.global_position = item.global_position
-				explosion.explode(explosion_color)
+					tween.tween_property(item, "scale", Vector2(1.2, 1.2), 0.05)
+					tween.tween_property(item, "scale", Vector2(0, 0), 0.15).set_delay(0.05)
+				
+				# Use item's local position relative to grid
+				_create_missile_explosion(item.position, color_type)
 		
 		await tween.finished
 	else:
+		# Standard match highlighting
 		for pos in matched_positions:
 			var gx = int(pos.x)
 			var gy = int(pos.y)
@@ -1769,13 +1819,13 @@ func highlight_and_remove(matched_positions: Array, is_bomb_effect: bool = false
 				var sprite = item.get_node_or_null("Sprite2D")
 				if sprite != null:
 					sprite.modulate = Color(1, 1, 0)
-					# Add shader effect here too
 					if sprite.material != null:
 						var removal_tween = create_tween()
-						removal_tween.tween_property(sprite.material,"shader_parameter/removal_progress", 1.0, 0.3)
-		await get_tree().create_timer(0.2).timeout
+						removal_tween.tween_property(sprite.material, "shader_parameter/removal_progress", 1.0, 0.2)
+		
+		await get_tree().create_timer(0.15).timeout
 	
-	# Remove items
+	# Remove items from grid immediately
 	for pos in matched_positions:
 		var gx = int(pos.x)
 		var gy = int(pos.y)
@@ -1784,14 +1834,13 @@ func highlight_and_remove(matched_positions: Array, is_bomb_effect: bool = false
 			item.queue_free()
 			_safe_set_grid_item(gx, gy, null)
 	
+	# Clear cache and check completion
 	_cached_matches.clear()
 	_grid_hash = ""
 	_check_level_completion()
 	
-	if tile_match_audio != null:
-		tile_match_audio.play()
-	
-	debug_print("Finished removing tiles.")
+	debug_print("Finished removing tiles - grid ready for refill")
+
 
 func _track_goal_progress(matched_positions: Array):
 	"""Track progress towards level goals when tiles are matched"""
@@ -1871,10 +1920,14 @@ func _show_goal_progress_message(color_counts: Dictionary):
 		playerMsg_label.text = progress_text
 		playerMsg_label.show()
 		
-		# Auto-fade the message after a delay
-		var fade_tween = create_tween()
-		fade_tween.tween_property(playerMsg_label, "modulate", Color.TRANSPARENT, 2.0).set_delay(0.25)
-
+		# Auto-fade the message after a delay - FIXED
+		var fade_callable = func(): 
+			var fade_tween = create_tween()
+			fade_tween.tween_property(playerMsg_label, "modulate", Color.TRANSPARENT, 2.0)
+		
+		get_tree().create_timer(0.25).timeout.connect(fade_callable)
+		
+		
 func add_score(matched_count: int):
 	if is_game_over or is_level_complete:
 		return
@@ -1905,6 +1958,17 @@ func add_score(matched_count: int):
 	
 	# Return the time bonus for use in progress message
 	return time_added
+
+
+# ============================================================================
+# AUDIO MANAGEMENT
+# ============================================================================
+func _play_tile_removal_audio():
+	"""Play audio for tile removal events"""
+	if tile_match_audio != null:
+		tile_match_audio.play()
+		debug_print("Audio played for tile removal")
+
 
 # ============================================================================
 # POWERUP SYSTEM
@@ -2020,9 +2084,10 @@ func _trigger_wrapped_effect(x: int, y: int, to_remove: Dictionary):
 				var tile_pos = Vector2(new_x, new_y)
 				to_remove[tile_pos] = true
 	
-	# Schedule second explosion (5x5) - this would need to be handled in the cascade system
-	call_deferred("_trigger_wrapped_second_explosion", x, y)
-
+	# Schedule second explosion (5x5) - FIXED
+	var second_explosion_callable = func(): _trigger_wrapped_second_explosion(x, y)
+	call_deferred("_execute_callable", second_explosion_callable)
+	
 func _trigger_wrapped_second_explosion(x: int, y: int):
 	"""Second explosion for wrapped candy (5x5)"""
 	await get_tree().create_timer(0.3).timeout
@@ -2038,10 +2103,14 @@ func _trigger_wrapped_second_explosion(x: int, y: int):
 	
 	if second_to_remove.size() > 0:
 		highlight_and_remove(second_to_remove.keys(), true)
-
+		
+		
 func _trigger_color_bomb_effect(x: int, y: int, to_remove: Dictionary):
-	"""Remove all tiles of the most common color on the board"""
+	"""Remove all tiles of the most common color on the board with optimized missile animation"""
 	debug_print("Triggering color bomb effect")
+	
+	# Get the color bomb world position
+	var bomb_world_pos = grid_to_world_position(x, y)
 	
 	# Count colors and find target color
 	var color_counts = {}
@@ -2062,12 +2131,19 @@ func _trigger_color_bomb_effect(x: int, y: int, to_remove: Dictionary):
 			target_color = color_type
 	
 	if target_color >= 0:
+		# Collect all target positions
+		var target_positions = []
 		for grid_x in range(grid_width):
 			for grid_y in range(grid_height):
 				var item = _safe_get_grid_item(grid_x, grid_y)
 				if item != null and _get_base_type(item.item_type) == target_color:
+					target_positions.append(Vector2(grid_x, grid_y))
 					to_remove[Vector2(grid_x, grid_y)] = true
-
+		
+		# Launch missiles with faster timing
+		_launch_missiles_async(bomb_world_pos, target_positions, target_color)
+		
+		
 func _trigger_lightning_effect(x: int, y: int, to_remove: Dictionary):
 	"""Remove tiles in diagonal directions"""
 	debug_print("Triggering lightning effect at (" + str(x) + "," + str(y) + ")")
@@ -2125,6 +2201,76 @@ func _trigger_time_freeze_effect(x: int, y: int, to_remove: Dictionary):
 				var tile_pos = Vector2(new_x, new_y)
 				to_remove[tile_pos] = true
 
+# ============================================================================
+# ANIMATIONS
+# ============================================================================
+
+
+func _launch_missiles_async(start_pos: Vector2, target_positions: Array, color_type: int):
+	"""Launch missiles asynchronously without blocking the main thread"""
+	if target_positions.is_empty():
+		return
+	
+	# Set missile timing 
+	var time_to_hit = 0.15  # Reduced from 0.3 to 0.15 seconds
+	
+	debug_print("Launching " + str(target_positions.size()) + " missiles with optimized timing")
+	
+	# Launch missiles with minimal stagger for visual effect
+	for i in range(target_positions.size()):
+		var grid_pos = target_positions[i]
+		var target_world_pos = grid_to_world_position(int(grid_pos.x), int(grid_pos.y))
+		
+		# Small delay for visual stagger (much smaller than before)
+		var launch_delay = i * 0.01  # Reduced from 0.02 to 0.01 for faster launch
+		
+		# Create callable for missile launch - FIXED
+		var launch_callable = func(): _create_and_fire_missile(start_pos, target_world_pos, time_to_hit, color_type)
+		
+		# Create missile with delay
+		get_tree().create_timer(launch_delay).timeout.connect(launch_callable)
+
+
+
+func _create_and_fire_missile(start_pos: Vector2, target_pos: Vector2, animation_time: float, color_type: int):
+	"""Create and fire a single missile with proper direction and particle effects"""
+	var missile = missile_scene.instantiate()
+	add_child(missile)
+	
+	# Setup missile color
+	if color_type < colors.size():
+		missile.setup_missile(colors[color_type])
+	else:
+		missile.setup_missile(Color.WHITE)
+	
+	# Use missile's built-in fire method for proper direction
+	missile.fire(start_pos, target_pos, animation_time)
+	
+	# FIXED: Connect to missile's target_reached signal with grid-relative position
+	var particle_callable = func(hit_position: Vector2): _create_missile_explosion(target_pos, color_type)
+	missile.target_reached.connect(particle_callable)
+	
+	# Clean up missile after animation using callable
+	var cleanup_callable = func(): 
+		if is_instance_valid(missile):
+			missile.queue_free()
+	
+	get_tree().create_timer(animation_time + 0.2).timeout.connect(cleanup_callable)
+	
+func _create_missile_explosion(position: Vector2, color_type: int):
+	"""Create particle explosion effect at missile impact - FIXED POSITIONING"""
+	var explosion = explosion_scene.instantiate()
+	add_child(explosion)  # Add to grid node instead of current_scene
+	explosion.position = position  # Use local position instead of global_position
+	
+	# Use the appropriate color for the explosion
+	var explosion_color = colors[color_type] if color_type < colors.size() else Color.WHITE
+	explosion.explode(explosion_color)
+	
+	debug_print("Missile explosion created at grid position: " + str(position))
+
+
+	
 # ============================================================================
 # SPECIAL GAME MECHANICS
 # ============================================================================
@@ -2216,7 +2362,8 @@ func _try_spawn_golden_time_powerup():
 			if new_item != null:
 				_safe_set_grid_item(int(pos.x), int(pos.y), new_item)
 				debug_print("Golden Time spawned special powerup: " + str(powerup_type))
-
+				
+				
 # ============================================================================
 # INPUT HANDLING
 # ============================================================================
@@ -2320,7 +2467,8 @@ func _get_cell_center(x, y):
 	)
 
 func _handle_swap_attempt(item1, item2, x1, y1, x2, y2):
-	"""Handle the swap attempt with power-up combination checking"""
+	"""Handle the swap attempt - audio handled by tile removal events"""
+	
 	attempt_swap(item1, item2, x1, y1, x2, y2)
 	await get_tree().create_timer(0.2).timeout
 
@@ -2331,25 +2479,26 @@ func _handle_swap_attempt(item1, item2, x1, y1, x2, y2):
 	
 	if powerup_combo_triggered:
 		debug_print("Power-up combination triggered!")
-		# Remove the power-ups that were combined
 		to_remove[Vector2(x1, y1)] = true
 		to_remove[Vector2(x2, y2)] = true
 		
+		# No audio here - highlight_and_remove will handle it
 		if to_remove.size() > 0:
 			highlight_and_remove(to_remove.keys(), true)
 			await get_tree().create_timer(0.3).timeout
 			await _handle_cascade()
 		return
 	
-	# If no power-up combo, proceed with normal match checking
 	var initial_match_found = await check_for_matches()
 	if initial_match_found:
 		debug_print("Initial match found, starting cascade.")
+		# No audio here - check_for_matches -> highlight_and_remove handles it
 		await _handle_cascade()
 	else:
 		debug_print("No initial match found, swapping back.")
 		attempt_swap(item1, item2, x2, y2, x1, y1)
-
+		
+		
 func attempt_swap(item1, item2, x1, y1, x2, y2):
 	if not item1 or not item2 or not is_instance_valid(item1) or not is_instance_valid(item2):
 		debug_print("ERROR: Invalid items for swap")

@@ -7,11 +7,22 @@ func _ready():
 	emitting = false
 	
 
-func explode(explosion_color=null):
-	"""Start the particle explosion effect"""
-	emitting = true
+func explode(explosion_color: Color = Color.WHITE):
+	"""Start the particle explosion effect with proper color"""
+	
+	# Set the color before starting emission
 	modulate = explosion_color
+	
+	# Configure particle properties for better visibility
+	emitting = true
 	restart()
+	
+	# Auto-cleanup after explosion
+	var cleanup_callable = func():
+		emitting = false
+		queue_free()
+	
+	get_tree().create_timer(2.0).timeout.connect(cleanup_callable)
 
 
 func _process(delta: float) -> void:
